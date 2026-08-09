@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { GraduationCap, Mail, Lock, User, Phone, Hash, Building, AlertCircle, CheckCircle, ArrowLeft, Eye, EyeOff } from 'lucide-react';
-import { ISTE_MEMBER_EMAILS } from '../lib/memberEmails';
 
 const STEP = {
   EMAIL: 'emailEntry',
@@ -39,47 +38,45 @@ export default function LoginPage() {
 
   const clearMessages = () => { setError(''); setSuccess(''); };
 
-  // Step 1: Check email
+  // Step 1: Check email against profiles table
   const handleEmailContinue = async () => {
     clearMessages();
     const trimmedEmail = email.trim().toLowerCase();
     if (!trimmedEmail) return setError('Please enter your email address.');
     setIsLoading(true);
-    console.log('[Auth Debug] Checking email:', trimmedEmail);
+    console.log('[Auth Debug] Checking email in profiles:', trimmedEmail);
     try {
-      // Check if they are in the static list of ISTE Members
-      const isIsteMember = ISTE_MEMBER_EMAILS.has(trimmedEmail);
-      console.log('[Auth Debug] isIsteMember check:', isIsteMember);
+      // Query profiles table for identity & membership tier
+      const { data: profileRow } = await supabase
+        .from('profiles')
+        .select('id, is_iste_member, is_registered')
+        .eq('email', trimmedEmail)
+        .maybeSingle();
+
+      const isIsteMember = profileRow?.is_iste_member ?? false;
+      const isRegistered = profileRow?.is_registered ?? false;
 
       if (isIsteMember) {
         setMembershipTag('iste_member');
-        console.log('[Auth Debug] ISTE member, sending OTP and routing to ISTE_OTP');
+        console.log('[Auth Debug] ISTE member detected, sending OTP...');
         await supabase.auth.signInWithOtp({ email: trimmedEmail, options: { shouldCreateUser: true } });
         setSuccess('OTP sent to your email!');
         setStep(STEP.ISTE_OTP);
         return;
       }
 
-      // Guest flow — check if they exist in auth
-      console.log('[Auth Debug] Checking guest existence in Supabase Auth...');
-      const { error: authErr } = await supabase.auth.signInWithOtp({
-        email: trimmedEmail,
-        options: { shouldCreateUser: false }
-      });
-
-      if (!authErr) {
-        // Existing guest — go to OTP verify
-        console.log('[Auth Debug] Existing guest user found, OTP sent, routing to GUEST_OTP');
+      if (isRegistered || profileRow) {
+        // Existing registered user / guest
         setMembershipTag('guest');
+        console.log('[Auth Debug] Existing guest user found, sending OTP...');
+        await supabase.auth.signInWithOtp({ email: trimmedEmail, options: { shouldCreateUser: true } });
         setSuccess('OTP sent to your email!');
         setStep(STEP.GUEST_OTP);
         return;
       }
 
-      console.log('[Auth Debug] Auth user does not exist (or error occurred):', authErr);
-
       // Truly new user — show guest registration form
-      console.log('[Auth Debug] Routing to GUEST_REG');
+      console.log('[Auth Debug] New user, routing to GUEST_REG');
       setMembershipTag('guest');
       setStep(STEP.GUEST_REG);
     } catch (err) {
@@ -101,11 +98,13 @@ export default function LoginPage() {
       
       const uid = data.user?.id;
       if (uid) {
-        // Upsert default profile for the ISTE member to public users table
-        await supabase.from('users').upsert({ 
+        // Upsert default profile for the ISTE member to profiles table
+        await supabase.from('profiles').upsert({ 
           id: uid, 
           email: email.trim().toLowerCase(), 
-          role: 'user' 
+          role: 'member',
+          is_registered: true,
+          is_iste_member: true,
         }, { onConflict: 'id' });
       }
 
@@ -147,8 +146,17 @@ export default function LoginPage() {
       const uid = data.user?.id;
       const pending = JSON.parse(sessionStorage.getItem('pending_signup') || '{}');
       if (uid && pending.name) {
-        await supabase.from('users').upsert({ id: uid, email: email.trim(), name: pending.name, phone: pending.phone, role: 'user' }, { onConflict: 'id' });
-        await supabase.from('members_not_iste').upsert({ id: uid, name: pending.name, email: email.trim(), phone: pending.phone, roll_number: pending.roll_number, college: pending.college }, { onConflict: 'id' });
+        await supabase.from('profiles').upsert({
+          id: uid,
+          email: email.trim().toLowerCase(),
+          name: pending.name,
+          phone: pending.phone,
+          roll_number: pending.roll_number,
+          college: pending.college,
+          role: 'member',
+          is_registered: true,
+          is_iste_member: false
+        }, { onConflict: 'id' });
         sessionStorage.removeItem('pending_signup');
       }
       navigate('/home');
@@ -163,24 +171,13 @@ export default function LoginPage() {
     switch (step) {
       case STEP.EMAIL: {
         const isEmailValid = email.includes('@') && email.includes('.');
-        const isLiveMember = isEmailValid && ISTE_MEMBER_EMAILS.has(email.trim().toLowerCase());
         return (
           <>
             <label style={{ fontSize: 13, fontWeight: 600, color: '#5F85A2', marginBottom: 6, display: 'block' }}>Email Address</label>
-            <div style={{ position: 'relative', marginBottom: 12 }}>
+            <div style={{ position: 'relative', marginBottom: 20 }}>
               <Mail size={18} style={{ position: 'absolute', left: 14, top: 14, color: '#5F85A2' }} />
               <input style={{ ...inputStyle, paddingLeft: 42 }} type="email" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleEmailContinue()} autoFocus />
             </div>
-
-            {/* Live member status indicator */}
-            {isEmailValid && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 20 }} className="fade-in">
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: isLiveMember ? '#38A169' : '#D97D55', boxShadow: `0 0 8px ${isLiveMember ? '#38A169' : '#D97D55'}` }} />
-                <span style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: 12, fontWeight: 700, color: isLiveMember ? '#2F855A' : '#D97D55' }}>
-                  {isLiveMember ? '✓ ISTE Member Account Detected' : 'Guest Account Detected'}
-                </span>
-              </div>
-            )}
 
             <button onClick={handleEmailContinue} disabled={isLoading} style={btnStyle}>
               {isLoading ? 'Checking...' : 'Continue →'}

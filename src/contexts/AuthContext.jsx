@@ -12,17 +12,19 @@ export function AuthProvider({ children }) {
   const loadProfile = async (authUser) => {
     if (!authUser) { setProfile(null); setIsLoading(false); return; }
     try {
-      const [usersRes, membersRes, notIsteRes] = await Promise.all([
-        supabase.from('users').select('id,email,name,phone,role,roll_number,branch,year,forum').eq('id', authUser.id).maybeSingle(),
-        supabase.from('members').select('id,user_id,name,email,phone,iste_id,role,status,plan,plan_type,joined_date,expiry_date,membership_expiry,department,forum,forum_name').eq('user_id', authUser.id).maybeSingle(),
-        supabase.from('members_not_iste').select('id,name,email,phone,roll_number,college').eq('id', authUser.id).maybeSingle(),
-      ]);
-      const userClean = usersRes.data || {};
-      const memberClean = membersRes.data || {};
-      const notIsteClean = notIsteRes.data || {};
-      const merged = { ...userClean, ...memberClean, ...notIsteClean };
-      merged.membership_id = merged.iste_id || '';
-      merged.validity_end = merged.validity_end || merged.expiry_date || merged.membership_expiry || null;
+      const { data: profileData, error: profileErr } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', authUser.id)
+        .maybeSingle();
+
+      if (profileErr) throw profileErr;
+      const p = profileData || {};
+      const merged = {
+        ...p,
+        membership_id: p.iste_membership_id || '',
+        validity_end: p.expiry_date || null,
+      };
       setProfile(merged);
     } catch (err) {
       setError(err.message);
@@ -60,10 +62,13 @@ export function AuthProvider({ children }) {
   const validityEnd = profile?.validity_end ? new Date(profile.validity_end) : null;
   const isMembershipValid = !!membershipId;
   const daysUntilExpiry = validityEnd ? Math.ceil((validityEnd - new Date()) / (1000 * 60 * 60 * 24)) : null;
+  const isRegistered = profile?.is_registered ?? false;
+  const isIsteMember = profile?.is_iste_member ?? false;
 
   const value = {
     user, profile, isLoading, error, isAuthenticated,
     name, role, membershipId, validityEnd, isMembershipValid, daysUntilExpiry,
+    isRegistered, isIsteMember,
     refresh, signOut,
   };
 
