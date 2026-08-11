@@ -54,7 +54,7 @@ function CertificateSection({ certificate, finalized, eventTitle, eventId, coord
         if (userId) {
           try {
             const { data: userRow } = await supabase
-              .from('users')
+              .from('profiles')
               .select('name')
               .eq('id', userId)
               .maybeSingle();

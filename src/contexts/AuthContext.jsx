@@ -18,16 +18,28 @@ export function AuthProvider({ children }) {
         .eq('id', authUser.id)
         .maybeSingle();
 
-      if (profileErr) throw profileErr;
-      const p = profileData || {};
+      if (profileErr) {
+        console.error('Error fetching profile from DB:', profileErr);
+      }
+      const p = profileData || { id: authUser.id, email: authUser.email };
       const merged = {
+        id: authUser.id,
+        email: authUser.email,
         ...p,
-        membership_id: p.iste_membership_id || '',
-        validity_end: p.expiry_date || null,
+        membership_id: p.iste_membership_id || p.membership_id || '',
+        validity_end: p.expiry_date || p.validity_end || null,
       };
       setProfile(merged);
     } catch (err) {
+      console.error('Error in loadProfile:', err);
       setError(err.message);
+      // Fallback profile so authenticated user is never trapped in infinite OTP loop
+      setProfile({
+        id: authUser.id,
+        email: authUser.email,
+        name: authUser.email ? authUser.email.split('@')[0] : 'Member',
+        role: 'member',
+      });
     } finally {
       setIsLoading(false);
     }

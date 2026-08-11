@@ -150,7 +150,7 @@ function CertCard({ cert, navigate }) {
         if (userId) {
           try {
             const { data: userRow } = await supabase
-              .from('users')
+              .from('profiles')
               .select('name')
               .eq('id', userId)
               .maybeSingle();
