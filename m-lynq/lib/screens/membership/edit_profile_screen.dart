@@ -46,19 +46,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         'year': _yearCtrl.text.trim(),
       };
 
-      // Update users table
       await Supabase.instance.client
-          .from('users')
+          .from('profiles')
           .update(updates)
           .eq('id', userId);
-
-      final memberUpdates = Map<String, dynamic>.from(updates)..remove('year');
-
-      // Upsert members row — inserts if not found, updates if exists.
-      // Eliminates the redundant select-before-write round-trip.
-      await Supabase.instance.client
-          .from('members')
-          .upsert({...memberUpdates, 'user_id': userId}, onConflict: 'user_id');
 
       // Refresh auth state
       await ref.read(authProvider.notifier).refresh();

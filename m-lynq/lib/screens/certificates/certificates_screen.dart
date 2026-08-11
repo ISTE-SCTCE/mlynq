@@ -174,7 +174,7 @@ class _CertificatesScreenState extends ConsumerState<CertificatesScreen>
         if (uid.isNotEmpty) {
           try {
             final userRow = await _supabase
-                .from('users')
+                .from('profiles')
                 .select('name')
                 .eq('id', uid)
                 .maybeSingle();

@@ -33,9 +33,9 @@ class _WebLinkScreenState extends State<WebLinkScreen> {
         final webUserId = response['web_user_id'];
         
         // Link the current mobile user to the web user id
-        await Supabase.instance.client.from('members').update({
+        await Supabase.instance.client.from('profiles').update({
           'linked_web_account': webUserId,
-        }).eq('user_id', Supabase.instance.client.auth.currentUser?.id ?? '');
+        }).eq('id', Supabase.instance.client.auth.currentUser?.id ?? '');
 
         // Mark code as used
         await Supabase.instance.client.from('web_linking_codes').update({

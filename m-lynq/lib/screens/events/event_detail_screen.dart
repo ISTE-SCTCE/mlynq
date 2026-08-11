@@ -59,7 +59,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
       if (userId.isNotEmpty) {
         try {
           final userRow = await _supabase
-              .from('users')
+              .from('profiles')
               .select('name')
               .eq('id', userId)
               .maybeSingle();
