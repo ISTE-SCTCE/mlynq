@@ -17,6 +17,9 @@ import { AddMemberScreen } from '../screens/members/AddMemberScreen';
 import { ExecomListScreen } from '../screens/members/ExecomListScreen';
 import { EventListScreen } from '../screens/events/EventListScreen';
 import { EventFormScreen } from '../screens/events/EventFormScreen';
+import { CertificateIssuanceScreen } from '../screens/events/CertificateIssuanceScreen';
+import { AttendanceReportScreen } from '../screens/events/AttendanceReportScreen';
+import { CertificateTemplateCalibrator } from '../screens/events/CertificateTemplateCalibrator';
 import { BudgetOverviewScreen } from '../screens/budget/BudgetOverviewScreen';
 import { BudgetRequestScreen } from '../screens/budget/BudgetRequestScreen';
 import { ReportListScreen } from '../screens/reports/ReportListScreen';
@@ -119,6 +122,11 @@ export const AppRouter: React.FC = () => {
           {/* Events */}
           <Route path="/events" element={<EventListScreen />} />
           <Route path="/events/create" element={<EventFormScreen />} />
+          <Route path="/events/:id/publish" element={<CertificateIssuanceScreen />} />
+          <Route path="/events/:id/attendance" element={<AttendanceReportScreen />} />
+          <Route element={<PermissionGuard check={(_, role) => role >= AppRole.forumExeccom} />}>
+            <Route path="/events/:id/calibrate" element={<CertificateTemplateCalibrator />} />
+          </Route>
 
           {/* Budget */}
           <Route element={<PermissionGuard check={(_, role) => role >= AppRole.forumExeccom} />}>

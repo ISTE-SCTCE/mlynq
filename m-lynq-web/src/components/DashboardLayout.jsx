@@ -1,6 +1,6 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { GraduationCap, Home, Calendar, Award, Bell, User, LogOut, Menu, X } from 'lucide-react';
+import { GraduationCap, Home, Calendar, Award, Bell, User, LogOut, Menu, X, History } from 'lucide-react';
 import { useState } from 'react';
 
 const navItems = [
@@ -8,6 +8,7 @@ const navItems = [
   { path: '/events', icon: <Calendar size={18} />, label: 'Events' },
   { path: '/attendance', icon: <GraduationCap size={18} />, label: 'Attendance' },
   { path: '/certificates', icon: <Award size={18} />, label: 'Certificates' },
+  { path: '/history', icon: <History size={18} />, label: 'History' },
   { path: '/notifications', icon: <Bell size={18} />, label: 'Notifications' },
   { path: '/profile', icon: <User size={18} />, label: 'Profile' },
 ];

@@ -150,7 +150,7 @@ function CertCard({ cert, navigate }) {
         if (userId) {
           try {
             const { data: userRow } = await supabase
-              .from('users')
+              .from('profiles')
               .select('name')
               .eq('id', userId)
               .maybeSingle();
@@ -175,11 +175,24 @@ function CertCard({ cert, navigate }) {
         if (!resolvedName) resolvedName = 'Member';
         // ─────────────────────────────────────────────────────────────────
 
+        const coordinatorName = cert.events?.coordinator_name || '';
+        const chairName = cert.events?.chair_name || '';
+
         // Replace placeholders
         html = html.replaceAll('{{student_name}}', resolvedName);
+        html = html.replaceAll('{{STUDENT_NAME}}', resolvedName);
         html = html.replaceAll('{{event_name}}', eventTitle);
+        html = html.replaceAll('{{EVENT_NAME}}', eventTitle);
         html = html.replaceAll('{{date}}', dateLabel);
+        html = html.replaceAll('{{DATE}}', dateLabel);
+        html = html.replaceAll('{{event_date}}', dateLabel);
+        html = html.replaceAll('{{EVENT_DATE}}', dateLabel);
         html = html.replaceAll('{{certificate_id}}', certId);
+        html = html.replaceAll('{{CERTIFICATE_ID}}', certId);
+        html = html.replaceAll('{{coordinator_name}}', coordinatorName);
+        html = html.replaceAll('{{COORDINATOR_NAME}}', coordinatorName);
+        html = html.replaceAll('{{chair_name}}', chairName);
+        html = html.replaceAll('{{CHAIR_NAME}}', chairName);
 
         const container = document.createElement('div');
         container.innerHTML = html;
@@ -356,22 +369,55 @@ export default function CertificatesPage() {
     if (!user?.id) return;
     (async () => {
       setIsLoading(true);
-      const { data } = await supabase
-        .from('certificates')
-        .select('id, event_id, student_name, user_id, certificate_url, file_url, issued_at, events(id, title, date, category, type)')
-        .eq('user_id', user.id)
-        .order('issued_at', { ascending: false });
+      try {
+        // 1. Fetch certificates for current user
+        const { data: certData, error: certErr } = await supabase
+          .from('certificates')
+          .select('id, event_id, student_name, user_id, certificate_url, file_url, issued_at')
+          .eq('user_id', user.id)
+          .order('issued_at', { ascending: false });
 
-      const normalised = (data || []).map(item => ({
-        ...item,
-        _url: item.certificate_url || item.file_url || '',
-        _category: item.events?.category || item.events?.type || null,
-        _eventTitle: item.events?.title || 'Event',
-        _eventDate: item.events?.date || '',
-        _eventId: item.events?.id || item.event_id,
-      }));
-      setAll(normalised);
-      setIsLoading(false);
+        if (certErr) throw certErr;
+
+        const certList = certData || [];
+
+        // 2. Fetch event details for unique event_ids
+        const eventIds = [...new Set(certList.map(c => c.event_id).filter(Boolean))];
+        const eventsMap = {};
+
+        if (eventIds.length > 0) {
+          const { data: eventRows, error: evErr } = await supabase
+            .from('events')
+            .select('id, title, date, category, type, coordinator_name, chair_name')
+            .in('id', eventIds);
+
+          if (evErr) throw evErr;
+
+          (eventRows || []).forEach(ev => {
+            eventsMap[ev.id] = ev;
+          });
+        }
+
+        // 3. Normalise and merge data
+        const normalised = certList.map(item => {
+          const ev = eventsMap[item.event_id];
+          return {
+            ...item,
+            events: ev || null,
+            _url: item.certificate_url || item.file_url || '',
+            _category: ev?.category || ev?.type || null,
+            _eventTitle: ev?.title || 'Event',
+            _eventDate: ev?.date || '',
+            _eventId: ev?.id || item.event_id,
+          };
+        });
+
+        setAll(normalised);
+      } catch (err) {
+        console.error('Error fetching certificates:', err);
+      } finally {
+        setIsLoading(false);
+      }
     })();
   }, [user]);
 

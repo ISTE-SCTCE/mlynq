@@ -11,6 +11,7 @@ import CertificatesPage from './pages/CertificatesPage';
 import AttendancePage from './pages/AttendancePage';
 import NotificationsPage from './pages/NotificationsPage';
 import ProfilePage from './pages/ProfilePage';
+import HistoryPage from './pages/HistoryPage';
 import './index.css';
 
 export default function App() {
@@ -28,6 +29,7 @@ export default function App() {
           <Route path="/events/:id" element={<ProtectedRoute><EventDetailPage /></ProtectedRoute>} />
           <Route path="/certificates" element={<ProtectedRoute><CertificatesPage /></ProtectedRoute>} />
           <Route path="/attendance" element={<ProtectedRoute><AttendancePage /></ProtectedRoute>} />
+          <Route path="/history" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
           <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
 

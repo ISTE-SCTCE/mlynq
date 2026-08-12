@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Calendar as CalendarIcon, Plus, MapPin, Trash, Loader, Clock, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, Calendar as CalendarIcon, Plus, MapPin, Trash, Loader, Clock, Image as ImageIcon, Award, Users } from 'lucide-react';
 import { useAuth } from '../../core/auth-provider';
 import { supabase } from '../../core/supabase-client';
 import { AppRole, appRoleFromString } from '../../core/constants';
@@ -42,7 +42,7 @@ export const EventListScreen: React.FC = () => {
       const userIds = Array.from(new Set(loadedEvents.map((e) => e.created_by).filter((id) => id)));
       if (userIds.length > 0) {
         const { data: usersData, error: uError } = await supabase
-          .from('users')
+          .from('profiles')
           .select('id, role')
           .in('id', userIds);
 
@@ -181,6 +181,27 @@ export const EventListScreen: React.FC = () => {
                     <span className="price-tag">₹{event.member_price} / ₹{event.non_member_price}</span>
                   )}
                 </div>
+
+                {(() => {
+                  const canManage = permissions.isAtLeastTier2 || (event.folder_id && permissions.canDoInFolder(event.folder_id, 'create_events'));
+                  if (!canManage) return null;
+                  return (
+                    <div className="event-action-buttons-row">
+                      <button 
+                        onClick={() => navigate(`/events/${event.id}/publish`)}
+                        className="event-action-btn publish"
+                      >
+                        <Award size={14} /> Publish Certs
+                      </button>
+                      <button 
+                        onClick={() => navigate(`/events/${event.id}/attendance`)}
+                        className="event-action-btn attendance"
+                      >
+                        <Users size={14} /> Attendance
+                      </button>
+                    </div>
+                  );
+                })()}
 
                 {canDeleteEvent(event) && (
                   <button onClick={(e) => handleDeleteEvent(event, e)} className="event-delete-card-btn flex-center">
@@ -350,6 +371,48 @@ export const EventListScreen: React.FC = () => {
 
         .event-delete-card-btn:hover {
           background: rgba(239, 68, 68, 0.12);
+        }
+
+        .event-action-buttons-row {
+          display: flex;
+          gap: 10px;
+          margin-top: 16px;
+          width: 100%;
+        }
+
+        .event-action-btn {
+          flex: 1;
+          padding: 10px;
+          border-radius: 10px;
+          font-family: var(--font-space-grotesk);
+          font-weight: 600;
+          font-size: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .event-action-btn.publish {
+          background: #d97706; /* amber-700 */
+          color: white;
+          border: none;
+        }
+
+        .event-action-btn.publish:hover {
+          background: #b45309;
+        }
+
+        .event-action-btn.attendance {
+          background: rgba(59, 130, 246, 0.1);
+          color: #60a5fa; /* blue-400 */
+          border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .event-action-btn.attendance:hover {
+          background: rgba(59, 130, 246, 0.2);
         }
 
         .spinner {

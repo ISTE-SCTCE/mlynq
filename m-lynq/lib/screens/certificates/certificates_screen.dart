@@ -12,6 +12,7 @@ import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../core/providers/auth_provider.dart';
+import '../../shared/utils/certificate_pdf_generator.dart';
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 class _T {
@@ -140,94 +141,172 @@ class _CertificatesScreenState extends ConsumerState<CertificatesScreen>
     required String eventTitle,
     required String dateStr,
     required dynamic certIdVal,
+    dynamic eventIdVal,
   }) async {
     if (_isDownloadingCert) return;
     setState(() => _isDownloadingCert = true);
 
     try {
       final url = rawUrl.trim();
-      final isHtml = url.startsWith('template:') ||
-          url.toLowerCase().endsWith('.html') ||
-          url.toLowerCase().contains('.html?');
+      final cleanPath = url.replaceFirst('template:', '');
+      String fetchUrl = cleanPath;
 
-      if (isHtml) {
-        final templatePath = url.replaceFirst('template:', '');
-        String templateHtmlUrl = templatePath;
+      List<int> uncompressedBytes = [];
 
-        if (!templatePath.startsWith('http')) {
-          templateHtmlUrl = await _supabase.storage
-              .from('event_posters')
-              .createSignedUrl(templatePath, 60);
-        }
-
-        final client = HttpClient();
-        final request = await client.getUrl(Uri.parse(templateHtmlUrl));
-        final response = await request.close();
-        String html = await response.transform(utf8.decoder).join();
-
-        // ── Resolve the actual student full name from DB ──────────────────
-        final auth = ref.read(authProvider);
-        final uid = auth.user?.id ?? '';
-        String resolvedName = '';
-
-        // Priority 1: fetch fresh from users table
-        if (uid.isNotEmpty) {
+      if (!cleanPath.startsWith('http')) {
+        final buckets = ['certificates', 'event_posters', 'certificate_templates'];
+        for (final b in buckets) {
           try {
-            final userRow = await _supabase
-                .from('profiles')
-                .select('name')
-                .eq('id', uid)
+            final signedUrl = await _supabase.storage.from(b).createSignedUrl(cleanPath, 60);
+            final client = HttpClient();
+            final req = await client.getUrl(Uri.parse(signedUrl));
+            final res = await req.close();
+            if (res.statusCode == 200) {
+              final fetched = await res.fold<List<int>>(<int>[], (acc, data) => acc..addAll(data));
+              try {
+                if (res.headers.value(HttpHeaders.contentEncodingHeader) == 'gzip' ||
+                    (fetched.length >= 2 && fetched[0] == 0x1f && fetched[1] == 0x8b)) {
+                  uncompressedBytes = gzip.decode(fetched);
+                } else {
+                  uncompressedBytes = fetched;
+                }
+              } catch (_) {
+                uncompressedBytes = fetched;
+              }
+              if (uncompressedBytes.isNotEmpty) break;
+            }
+          } catch (_) {}
+        }
+      } else {
+        final client = HttpClient();
+        final req = await client.getUrl(Uri.parse(cleanPath));
+        final res = await req.close();
+        if (res.statusCode == 200) {
+          final fetched = await res.fold<List<int>>(<int>[], (acc, data) => acc..addAll(data));
+          try {
+            if (res.headers.value(HttpHeaders.contentEncodingHeader) == 'gzip' ||
+                (fetched.length >= 2 && fetched[0] == 0x1f && fetched[1] == 0x8b)) {
+              uncompressedBytes = gzip.decode(fetched);
+            } else {
+              uncompressedBytes = fetched;
+            }
+          } catch (_) {
+            uncompressedBytes = fetched;
+          }
+        }
+      }
+
+      if (uncompressedBytes.isEmpty) {
+        throw Exception('Could not retrieve certificate content.');
+      }
+
+      final isPdf = uncompressedBytes.length >= 4 &&
+          uncompressedBytes[0] == 0x25 && // %
+          uncompressedBytes[1] == 0x50 && // P
+          uncompressedBytes[2] == 0x44 && // D
+          uncompressedBytes[3] == 0x46;   // F
+
+      final isJpeg = uncompressedBytes.length >= 3 &&
+          uncompressedBytes[0] == 0xFF &&
+          uncompressedBytes[1] == 0xD8 &&
+          uncompressedBytes[2] == 0xFF;
+
+      final isPng = uncompressedBytes.length >= 4 &&
+          uncompressedBytes[0] == 0x89 &&
+          uncompressedBytes[1] == 0x50 && // P
+          uncompressedBytes[2] == 0x4E && // N
+          uncompressedBytes[3] == 0x47;   // G
+
+      final dir = await getApplicationDocumentsDirectory();
+      final sanitizedTitle = eventTitle.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_');
+      final targetFileName = 'Certificate_$sanitizedTitle';
+
+      if (isPdf) {
+        final pdfFile = File('${dir.path}/$targetFileName.pdf');
+        await pdfFile.writeAsBytes(uncompressedBytes);
+        await OpenFile.open(pdfFile.path);
+        return;
+      }
+
+      // ── Resolve the actual student full name from DB ──────────────────
+      final auth = ref.read(authProvider);
+      final uid = auth.user?.id ?? '';
+      String resolvedName = '';
+
+      if (uid.isNotEmpty) {
+        try {
+          final userRow = await _supabase
+              .from('profiles')
+              .select('name')
+              .eq('id', uid)
+              .maybeSingle();
+          final dbName = userRow?['name'] as String?;
+          if (dbName != null && dbName.trim().isNotEmpty) {
+            resolvedName = dbName.trim();
+          }
+        } catch (_) {}
+      }
+
+      if (resolvedName.isEmpty && studentName.isNotEmpty && studentName != 'Member') {
+        resolvedName = studentName;
+      }
+
+      if (resolvedName.isEmpty && auth.name.isNotEmpty) {
+        resolvedName = auth.name;
+      }
+
+      if (resolvedName.isEmpty) resolvedName = 'Member';
+
+      final certId = certIdVal?.toString() ?? 'ISTE-CERT-${DateTime.now().millisecondsSinceEpoch}';
+
+      if (isJpeg || isPng || !isHtmlContent(uncompressedBytes)) {
+        Map<String, dynamic>? fieldPositions;
+        if (eventIdVal != null) {
+          try {
+            final evRow = await _supabase
+                .from('events')
+                .select('certificate_field_positions')
+                .eq('id', eventIdVal)
                 .maybeSingle();
-            final dbName = userRow?['name'] as String?;
-            if (dbName != null && dbName.trim().isNotEmpty) {
-              resolvedName = dbName.trim();
+            if (evRow != null && evRow['certificate_field_positions'] != null) {
+              fieldPositions = Map<String, dynamic>.from(evRow['certificate_field_positions']);
             }
           } catch (_) {}
         }
 
-        // Priority 2: student_name stored in certificates table at issuance
-        if (resolvedName.isEmpty && studentName.isNotEmpty && studentName != 'Member') {
-          resolvedName = studentName;
-        }
-
-        // Priority 3: fall back to auth provider profile name
-        if (resolvedName.isEmpty && auth.name.isNotEmpty) {
-          resolvedName = auth.name;
-        }
-
-        if (resolvedName.isEmpty) resolvedName = 'Member';
-        // ─────────────────────────────────────────────────────────────────
-
-        final certId = certIdVal?.toString() ?? 'ISTE-CERT-${DateTime.now().millisecondsSinceEpoch}';
-
-        html = html.replaceAll('{{student_name}}', resolvedName);
-        html = html.replaceAll('{{event_name}}', eventTitle);
-        html = html.replaceAll('{{date}}', dateStr);
-        html = html.replaceAll('{{certificate_id}}', certId);
-
-        final dir = await getApplicationDocumentsDirectory();
-        final sanitizedTitle = eventTitle.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_');
-        final targetFileName = 'Certificate_$sanitizedTitle';
-
-        final generatedPdfFile = await FlutterHtmlToPdf.convertFromHtmlContent(
-          html,
-          dir.path,
-          targetFileName,
+        final pdfBytes = await buildImageCertificatePdf(
+          imageBytes: uncompressedBytes,
+          studentName: resolvedName,
+          eventTitle: eventTitle,
+          dateStr: dateStr,
+          certId: certId,
+          fieldPositions: fieldPositions,
         );
 
-        await OpenFile.open(generatedPdfFile.path);
-      } else {
-        final uri = Uri.parse(url);
-        if (await canLaunchUrl(uri)) {
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-        } else {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Could not open link: $url')),
-            );
-          }
-        }
+        final pdfFile = File('${dir.path}/$targetFileName.pdf');
+        await pdfFile.writeAsBytes(pdfBytes);
+        await OpenFile.open(pdfFile.path);
+        return;
       }
+
+      String htmlStr = utf8.decode(uncompressedBytes, allowMalformed: true);
+
+      htmlStr = htmlStr.replaceAll('{{student_name}}', resolvedName);
+      htmlStr = htmlStr.replaceAll('{{STUDENT_NAME}}', resolvedName);
+      htmlStr = htmlStr.replaceAll('{{event_name}}', eventTitle);
+      htmlStr = htmlStr.replaceAll('{{EVENT_NAME}}', eventTitle);
+      htmlStr = htmlStr.replaceAll('{{date}}', dateStr);
+      htmlStr = htmlStr.replaceAll('{{DATE}}', dateStr);
+      htmlStr = htmlStr.replaceAll('{{certificate_id}}', certId);
+      htmlStr = htmlStr.replaceAll('{{CERTIFICATE_ID}}', certId);
+
+      final generatedPdfFile = await FlutterHtmlToPdf.convertFromHtmlContent(
+        htmlStr,
+        dir.path,
+        targetFileName,
+      );
+
+      await OpenFile.open(generatedPdfFile.path);
     } catch (e) {
       debugPrint('Error opening certificate: $e');
       if (mounted) {
@@ -350,6 +429,7 @@ class _CertificatesScreenState extends ConsumerState<CertificatesScreen>
                                   eventTitle: title,
                                   dateStr: date,
                                   certIdVal: certId,
+                                  eventIdVal: c['event_id'],
                                 );
                               },
                             ),

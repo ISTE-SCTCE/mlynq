@@ -37,10 +37,7 @@ export default function ProfilePage() {
     setSaveMsg(''); setSaveError('');
     setIsSaving(true);
     try {
-      // Update users table
-      await supabase.from('users').update({ name: formName, phone: formPhone, roll_number: formRoll, branch: formBranch, year: formYear ? parseInt(formYear) : null }).eq('id', user.id);
-      // Update members table
-      await supabase.from('members').upsert({ user_id: user.id, name: formName, phone: formPhone, roll_number: formRoll, branch: formBranch }, { onConflict: 'user_id' });
+      await supabase.from('profiles').update({ name: formName, phone: formPhone, roll_number: formRoll, branch: formBranch, year: formYear ? parseInt(formYear) : null }).eq('id', user.id);
       setSaveMsg('Profile updated successfully!');
       setEditing(false);
       refresh();

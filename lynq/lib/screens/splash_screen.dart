@@ -2,8 +2,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter/physics.dart';
-import '../core/theme.dart';
 import '../core/auth_provider.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -135,7 +133,6 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
-    // Hardcoded to #1E1E1E per user requirements for the premium look
     const bgColor = Color(0xFF1E1E1E);
     const primaryColor = Colors.white;
     
