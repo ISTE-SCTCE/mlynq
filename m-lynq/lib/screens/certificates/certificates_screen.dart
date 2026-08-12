@@ -13,6 +13,8 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../core/providers/auth_provider.dart';
 import '../../shared/utils/certificate_pdf_generator.dart';
+import '../../shared/utils/dynamic_template_parser.dart';
+import '../../shared/utils/dynamic_certificate_pdf_engine.dart';
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 class _T {
@@ -260,27 +262,36 @@ class _CertificatesScreenState extends ConsumerState<CertificatesScreen>
       final certId = certIdVal?.toString() ?? 'ISTE-CERT-${DateTime.now().millisecondsSinceEpoch}';
 
       if (isJpeg || isPng || !isHtmlContent(uncompressedBytes)) {
-        Map<String, dynamic>? fieldPositions;
+        List<FieldConfig> fieldConfigs = [];
         if (eventIdVal != null) {
           try {
-            final evRow = await _supabase
-                .from('events')
-                .select('certificate_field_positions')
-                .eq('id', eventIdVal)
+            final tmplRow = await _supabase
+                .from('certificate_templates')
+                .select('id')
+                .eq('event_id', eventIdVal)
+                .order('created_at', ascending: false)
                 .maybeSingle();
-            if (evRow != null && evRow['certificate_field_positions'] != null) {
-              fieldPositions = Map<String, dynamic>.from(evRow['certificate_field_positions']);
+            if (tmplRow != null && tmplRow['id'] != null) {
+              final fieldsRes = await _supabase
+                  .from('certificate_template_fields')
+                  .select()
+                  .eq('template_id', tmplRow['id']);
+              final List rows = fieldsRes as List? ?? [];
+              fieldConfigs = rows.map((r) => FieldConfig.fromMap(r as Map<String, dynamic>)).toList();
             }
           } catch (_) {}
         }
 
-        final pdfBytes = await buildImageCertificatePdf(
-          imageBytes: uncompressedBytes,
+        final fieldValues = DynamicTemplateParser.resolveValues(
+          event: {'title': eventTitle, 'date': dateStr},
           studentName: resolvedName,
-          eventTitle: eventTitle,
-          dateStr: dateStr,
-          certId: certId,
-          fieldPositions: fieldPositions,
+          certificateId: certId,
+        );
+
+        final pdfBytes = await DynamicCertificatePdfEngine.renderImageCertificate(
+          imageBytes: uncompressedBytes,
+          fieldValues: fieldValues,
+          fieldConfigs: fieldConfigs,
         );
 
         final pdfFile = File('${dir.path}/$targetFileName.pdf');

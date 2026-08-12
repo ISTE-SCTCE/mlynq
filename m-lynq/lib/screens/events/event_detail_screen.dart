@@ -7,6 +7,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/theme.dart';
 import '../../shared/utils/certificate_pdf_generator.dart';
+import '../../shared/utils/dynamic_template_parser.dart';
+import '../../shared/utils/dynamic_certificate_pdf_engine.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
@@ -149,17 +151,39 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
       if (resolvedName.isEmpty) resolvedName = 'Member';
 
       if (isJpeg || isPng || !isHtmlContent(uncompressedBytes)) {
-        final fieldPositions = _event?['certificate_field_positions'] as Map<String, dynamic>?;
+        List<FieldConfig> fieldConfigs = [];
+        try {
+          final tmplRow = await _supabase
+              .from('certificate_templates')
+              .select('id')
+              .eq('event_id', widget.eventId)
+              .order('created_at', ascending: false)
+              .maybeSingle();
+          if (tmplRow != null && tmplRow['id'] != null) {
+            final fieldsRes = await _supabase
+                .from('certificate_template_fields')
+                .select()
+                .eq('template_id', tmplRow['id']);
+            final List rows = fieldsRes as List? ?? [];
+            fieldConfigs = rows.map((r) => FieldConfig.fromMap(r as Map<String, dynamic>)).toList();
+          }
+        } catch (_) {}
 
-        final pdfBytes = await buildImageCertificatePdf(
-          imageBytes: uncompressedBytes,
+        final fieldValues = DynamicTemplateParser.resolveValues(
+          event: {
+            'title': eventTitle,
+            'date': dateLabel,
+            'location': _event?['location'],
+            'coordinator_name': _event?['coordinator_name'],
+          },
           studentName: resolvedName,
-          eventTitle: eventTitle,
-          dateStr: dateLabel,
-          certId: certId,
-          coordinatorName: _event?['coordinator_name'] as String? ?? '',
-          chairName: _event?['chair_name'] as String? ?? '',
-          fieldPositions: fieldPositions,
+          certificateId: certId,
+        );
+
+        final pdfBytes = await DynamicCertificatePdfEngine.renderImageCertificate(
+          imageBytes: uncompressedBytes,
+          fieldValues: fieldValues,
+          fieldConfigs: fieldConfigs,
         );
 
         final pdfFile = File('${dir.path}/$targetFileName.pdf');
