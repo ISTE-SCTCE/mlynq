@@ -76,9 +76,11 @@ export function AuthProvider({ children }) {
   const daysUntilExpiry = validityEnd ? Math.ceil((validityEnd - new Date()) / (1000 * 60 * 60 * 24)) : null;
   const isRegistered = profile?.is_registered ?? false;
   const isIsteMember = profile?.is_iste_member ?? false;
+  const isSuspended = profile?.status === 'suspended' || (profile?.suspended_until ? new Date(profile.suspended_until) > new Date() : false);
 
   const value = {
-    user, profile, isLoading, error, isAuthenticated,
+    user, profile, isLoading, error, isAuthenticated: isAuthenticated && !isSuspended,
+    isSuspended,
     name, role, membershipId, validityEnd, isMembershipValid, daysUntilExpiry,
     isRegistered, isIsteMember,
     refresh, signOut,

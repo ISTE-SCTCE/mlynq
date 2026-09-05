@@ -90,7 +90,7 @@ export default function LoginPage() {
   // Step: Verify ISTE OTP
   const handleIsteOtpVerify = async () => {
     clearMessages();
-    if (otp.length < 8) return setError('Please enter the 8-digit OTP.');
+    if (otp.trim().length < 6) return setError('Please enter the 6-digit OTP.');
     setIsLoading(true);
     try {
       const { data, error: otpErr } = await supabase.auth.verifyOtp({ email: email.trim(), token: otp, type: 'email' });
@@ -138,7 +138,7 @@ export default function LoginPage() {
   // Step: Verify guest OTP
   const handleGuestOtpVerify = async () => {
     clearMessages();
-    if (otp.length < 8) return setError('Please enter the 8-digit OTP.');
+    if (otp.trim().length < 6) return setError('Please enter the 6-digit OTP.');
     setIsLoading(true);
     try {
       const { data, error: otpErr } = await supabase.auth.verifyOtp({ email: email.trim(), token: otp, type: 'email' });

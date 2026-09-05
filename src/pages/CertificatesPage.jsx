@@ -225,7 +225,23 @@ function CertCard({ cert, navigate }) {
         setIsDownloading(false);
       }
     } else {
-      window.open(url, '_blank');
+      try {
+        setIsDownloading(true);
+        const res = await fetch(url);
+        const blob = await res.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = `Certificate_${(eventTitle || 'Event').replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(blobUrl);
+      } catch (err) {
+        window.open(url, '_blank');
+      } finally {
+        setIsDownloading(false);
+      }
     }
   };
 
@@ -280,7 +296,11 @@ function CertCard({ cert, navigate }) {
           <div style={{ display: 'flex', onClick: e => e.stopPropagation() }}
             onClick={e => e.stopPropagation()}>
             <button
-              onClick={e => { e.stopPropagation(); window.open(url, '_blank'); }}
+              onClick={e => {
+                e.stopPropagation();
+                const targetUrl = (url || '').replace(/^template:/, '');
+                if (targetUrl) window.open(targetUrl, '_blank');
+              }}
               style={{
                 flex: 1, padding: '10px 0', background: 'none', border: 'none', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,

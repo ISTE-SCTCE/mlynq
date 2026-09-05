@@ -23,6 +23,7 @@ export default function AttendancePage() {
 
   useEffect(() => {
     const load = async () => {
+      if (!user?.id) return;
       setIsLoading(true);
       const { data } = await supabase
         .from('attendance')
