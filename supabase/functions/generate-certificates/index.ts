@@ -117,7 +117,7 @@ async function buildCertificatePdf(params: {
     borderColor: midGold, borderWidth: 0.75, color: cream,
   });
 
-  // ── Circuit-trace corner ornaments (top-left) ──
+  // ── Circuit-trace corner ornaments ──
   const drawCircuitCorner = (ox: number, oy: number, flipX = false, flipY = false) => {
     const sx = flipX ? -1 : 1;
     const sy = flipY ? -1 : 1;
@@ -138,7 +138,6 @@ async function buildCertificatePdf(params: {
         color: gold, thickness: 1.2, opacity: 0.45,
       });
     }
-    // Small contact dots
     const dots: [number, number][] = [[40, 0], [20, 0], [8, -35]];
     for (const [dx, dy] of dots) {
       page.drawCircle({ x: ox + dx * sx, y: oy + dy * sy, size: 2.5, color: gold, opacity: 0.6 });
@@ -293,6 +292,198 @@ async function buildCertificatePdf(params: {
   return await pdfDoc.save();
 }
 
+// ── Image-Template PDF Builder ──────────────────────────────────────────────
+// Builds a PDF from an execom-uploaded background image + coordinate-based
+// vector text overlay. Replaces the old client-side html2canvas path.
+// Deterministic, server-side, works for real bulk generation.
+
+type FieldConfig = {
+  x: number;
+  y: number;
+  size: number;
+  align?: "left" | "center" | "right";
+  font?: "Helvetica" | "HelveticaBold" | "TimesRoman" | "TimesRomanBold";
+  color?: string; // hex, e.g. "#1B2A4A"
+};
+
+async function buildImageCertificatePdf(params: {
+  imageUrl: string;
+  fieldPositions: Record<string, FieldConfig>;
+  fieldValues: Record<string, string>;
+}): Promise<Uint8Array> {
+  const { imageUrl, fieldPositions, fieldValues } = params;
+
+  const imgRes = await fetch(imageUrl);
+  if (!imgRes.ok) {
+    throw new Error(`Failed to fetch template image: ${imgRes.status} ${imgRes.statusText}`);
+  }
+  const imgBytes = new Uint8Array(await imgRes.arrayBuffer());
+
+  const pdfDoc = await PDFDocument.create();
+
+  const isPng = /\.png(\?|$)/i.test(imageUrl) ||
+    (imgBytes[0] === 0x89 && imgBytes[1] === 0x50); // PNG magic bytes fallback
+  const embeddedImage = isPng
+    ? await pdfDoc.embedPng(imgBytes)
+    : await pdfDoc.embedJpg(imgBytes);
+
+  const { width, height } = embeddedImage.scale(1);
+  const page = pdfDoc.addPage([width, height]);
+  page.drawImage(embeddedImage, { x: 0, y: 0, width, height });
+
+  const fonts: Record<string, PDFFont> = {
+    Helvetica:      await pdfDoc.embedFont(StandardFonts.Helvetica),
+    HelveticaBold:  await pdfDoc.embedFont(StandardFonts.HelveticaBold),
+    TimesRoman:     await pdfDoc.embedFont(StandardFonts.TimesRoman),
+    TimesRomanBold: await pdfDoc.embedFont(StandardFonts.TimesRomanBold),
+  };
+
+  for (const [fieldKey, config] of Object.entries(fieldPositions)) {
+    const value = fieldValues[fieldKey];
+    if (!value) continue;
+
+    const font = fonts[config.font ?? "Helvetica"] ?? fonts.Helvetica;
+    let fontSize = config.size;
+
+    // Auto-shrink long text to fit within 80% of page width
+    let textWidth = font.widthOfTextAtSize(value, fontSize);
+    const maxWidth = width * 0.8;
+    while (textWidth > maxWidth && fontSize > 8) {
+      fontSize -= 1;
+      textWidth = font.widthOfTextAtSize(value, fontSize);
+    }
+
+    let drawX = config.x;
+    if (config.align === "center") {
+      drawX = config.x - textWidth / 2;
+    } else if (config.align === "right") {
+      drawX = config.x - textWidth;
+    }
+
+    const colorHex = config.color ?? "#000000";
+    const r = parseInt(colorHex.slice(1, 3), 16) / 255;
+    const g = parseInt(colorHex.slice(3, 5), 16) / 255;
+    const b = parseInt(colorHex.slice(5, 7), 16) / 255;
+
+    page.drawText(value, {
+      x: drawX,
+      y: config.y,
+      size: fontSize,
+      font,
+      color: rgb(r, g, b),
+    });
+  }
+
+  return await pdfDoc.save();
+}
+
+// ── Google Slides Presentation Template PDF Builder ─────────────────────────
+async function buildGoogleSlidesCertificatePdf(params: {
+  slideBytes: Uint8Array;
+  slideWidth: number;
+  slideHeight: number;
+  contentWidth: number;
+  isDark: boolean;
+  bgR: number;
+  bgG: number;
+  bgB: number;
+  studentName: string;
+  fieldPositions?: Record<string, FieldConfig>;
+}): Promise<Uint8Array> {
+  const {
+    slideBytes,
+    slideWidth,
+    slideHeight,
+    contentWidth,
+    isDark,
+    bgR,
+    bgG,
+    bgB,
+    studentName,
+    fieldPositions,
+  } = params;
+
+  const pdfDoc = await PDFDocument.create();
+  const embeddedImage = await pdfDoc.embedPng(slideBytes);
+  const page = pdfDoc.addPage([contentWidth, slideHeight]);
+
+  page.drawImage(embeddedImage, {
+    x: 0,
+    y: 0,
+    width: slideWidth,
+    height: slideHeight,
+  });
+
+  const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+  if (fieldPositions && Object.keys(fieldPositions).length > 0 && fieldPositions.student_name) {
+    const pos = fieldPositions.student_name;
+    let fontSize = pos.size || Math.round(slideHeight * 0.06);
+    let textWidth = helveticaBold.widthOfTextAtSize(studentName, fontSize);
+    let drawX = pos.x;
+    if (pos.align === "center") {
+      drawX = pos.x - textWidth / 2;
+    } else if (pos.align === "right") {
+      drawX = pos.x - textWidth;
+    }
+
+    let color = isDark ? rgb(1, 1, 1) : rgb(0.08, 0.12, 0.22);
+    if (pos.color && pos.color.startsWith("#")) {
+      const r = parseInt(pos.color.slice(1, 3), 16) / 255;
+      const g = parseInt(pos.color.slice(3, 5), 16) / 255;
+      const b = parseInt(pos.color.slice(5, 7), 16) / 255;
+      color = rgb(r, g, b);
+    }
+
+    page.drawText(studentName, {
+      x: drawX,
+      y: pos.y,
+      size: fontSize,
+      font: helveticaBold,
+      color,
+    });
+  } else {
+    // Default dynamic replacement: cover {{student_name}} placeholder and draw name centered
+    const eraseH = slideHeight * 0.105;
+    const eraseW = contentWidth * 0.60;
+    const eraseX = (contentWidth - eraseW) / 2;
+    const eraseY = slideHeight * 0.435;
+
+    const eraseColor = isDark
+      ? rgb(bgR / 255, bgG / 255, bgB / 255)
+      : rgb(0.98, 0.98, 0.98);
+    const textColor = isDark ? rgb(1, 1, 1) : rgb(0.08, 0.12, 0.22);
+
+    page.drawRectangle({
+      x: eraseX,
+      y: eraseY,
+      width: eraseW,
+      height: eraseH,
+      color: eraseColor,
+    });
+
+    let fontSize = Math.round(slideHeight * 0.058);
+    let textWidth = helveticaBold.widthOfTextAtSize(studentName, fontSize);
+    while (textWidth > contentWidth * 0.70 && fontSize > 14) {
+      fontSize -= 2;
+      textWidth = helveticaBold.widthOfTextAtSize(studentName, fontSize);
+    }
+
+    const textX = (contentWidth - textWidth) / 2;
+    const textY = eraseY + (eraseH - fontSize) / 2 + 2;
+
+    page.drawText(studentName, {
+      x: textX,
+      y: textY,
+      size: fontSize,
+      font: helveticaBold,
+      color: textColor,
+    });
+  }
+
+  return await pdfDoc.save();
+}
+
 // ── Main Handler ──────────────────────────────────────────────────────────────
 
 serve(async (req: Request) => {
@@ -306,19 +497,27 @@ serve(async (req: Request) => {
   }
 
   try {
-    // ── Auth: require service role or execom JWT ──
-    const authHeader = req.headers.get("Authorization") ?? "";
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // Parse body
-    const body = await req.json() as {
+    // Parse request body
+    const body = (await req.json()) as {
       eventId: number;
-      templateUrl?: string; // optional: if provided, we fetch the HTML and do string-replace for preview
+      templateUrl?: string;
+      chairName?: string;
+      coordinatorName?: string;
+      forceRegenerate?: boolean;
     };
 
-    const { eventId, templateUrl } = body;
+    const {
+      eventId,
+      templateUrl,
+      chairName: bodyChair,
+      coordinatorName: bodyCoord,
+      forceRegenerate,
+    } = body;
+
     if (!eventId) {
       return new Response(JSON.stringify({ error: "eventId is required" }), {
         status: 400,
@@ -329,83 +528,293 @@ serve(async (req: Request) => {
     // ── Fetch event metadata ──
     const { data: event, error: evErr } = await supabase
       .from("events")
-      .select("id, title, date, coordinator_name, chair_name, category")
+      .select(
+        "id, title, date, coordinator_name, chair_name, category, template_url, " +
+          "certificate_template_type, certificate_image_url, certificate_field_positions"
+      )
       .eq("id", eventId)
       .single();
 
     if (evErr || !event) {
-      return new Response(JSON.stringify({ error: "Event not found" }), { status: 404, headers: { "Content-Type": "application/json" } });
+      return new Response(
+        JSON.stringify({ error: "Event not found" }),
+        { status: 404, headers: { "Content-Type": "application/json" } }
+      );
     }
 
-    const eventTitle = (event.title as string) ?? "ISTE Event";
-    const eventDate = formatDate((event.date as string) ?? "");
-    const coordinatorName = (event.coordinator_name as string) ?? "";
-    const chairName = (event.chair_name as string) ?? "";
-    const category = (event.category as string) ?? "General";
+    // If new template or execom names are passed, synchronize them to the event
+    if (templateUrl || bodyChair || bodyCoord) {
+      await supabase
+        .from("events")
+        .update({
+          ...(templateUrl
+            ? {
+                template_url: templateUrl.trim(),
+                certificate_image_url: templateUrl.trim(),
+                certificate_template_type: "slides",
+              }
+            : {}),
+          ...(bodyChair ? { chair_name: bodyChair.trim() } : {}),
+          ...(bodyCoord ? { coordinator_name: bodyCoord.trim() } : {}),
+        })
+        .eq("id", eventId);
+    }
 
-    // ── Fetch attendees (attendance rows joined with users) ──
-    const { data: attendees, error: attErr } = await supabase
+    const eventTitle      = (event.title as string) ?? "ISTE Event";
+    const eventDate       = formatDate((event.date as string) ?? "");
+    const coordinatorName = bodyCoord || (event.coordinator_name as string) || "Event Coordinator";
+    const chairName       = bodyChair || (event.chair_name as string) || "Chapter Chair";
+    const category        = (event.category as string) ?? "General";
+
+    // ── Fetch attendees from attendance table, resolving names from profiles & users ──
+    const userMap = new Map<string, string>();
+
+    const { data: attRows } = await supabase
       .from("attendance")
-      .select("user_id, users(id, name)")
+      .select("user_id")
       .eq("event_id", eventId);
 
-    if (attErr) {
-      return new Response(JSON.stringify({ error: `Attendance fetch failed: ${attErr.message}` }), {
-        status: 500, headers: { "Content-Type": "application/json" },
-      });
+    const userIds = Array.from(
+      new Set((attRows ?? []).map((r: { user_id: string }) => r.user_id).filter(Boolean))
+    );
+
+    if (userIds.length > 0) {
+      // 1. Try profiles table
+      try {
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("id, name")
+          .in("id", userIds);
+        for (const p of profs ?? []) {
+          if (p.id && p.name && p.name.trim()) {
+            userMap.set(p.id, p.name.trim());
+          }
+        }
+      } catch (_) {}
+
+      // 2. Try users table for missing or default names
+      const missingUids = userIds.filter(
+        (uid) => !userMap.has(uid) || userMap.get(uid) === "Member"
+      );
+      if (missingUids.length > 0) {
+        try {
+          const { data: uRows } = await supabase
+            .from("users")
+            .select("id, name")
+            .in("id", missingUids);
+          for (const u of uRows ?? []) {
+            if (u.id && u.name && u.name.trim()) {
+              userMap.set(u.id, u.name.trim());
+            }
+          }
+        } catch (_) {}
+      }
+
+      // 3. Ensure all user_ids have an entry
+      for (const uid of userIds) {
+        if (!userMap.has(uid)) {
+          userMap.set(uid, "Member");
+        }
+      }
     }
 
-    if (!attendees || attendees.length === 0) {
-      return new Response(JSON.stringify({ generated: 0, skipped_existing: 0, errors: [], message: "No attendees found" }), {
-        headers: { "Content-Type": "application/json" },
-      });
+    if (userMap.size === 0) {
+      return new Response(
+        JSON.stringify({
+          generated: 0,
+          skipped_existing: 0,
+          errors: [],
+          message: "No attendees found",
+        }),
+        { headers: { "Content-Type": "application/json" } }
+      );
     }
 
-    // ── Fetch already-issued certificate user_ids ──
+    // ── Fetch already-issued certificates ──
     const { data: existing } = await supabase
       .from("certificates")
       .select("user_id")
       .eq("event_id", eventId);
 
-    const existingUserIds = new Set((existing ?? []).map((r: { user_id: string }) => r.user_id));
+    const existingUserIds = new Set(
+      (existing ?? []).map((r: { user_id: string }) => r.user_id)
+    );
 
-    // ── Optionally fetch HTML template for string-replace preview storage ──
-    let templateHtml: string | null = null;
-    if (templateUrl) {
+    // If explicit templateUrl or forceRegenerate is set, overwrite existing
+    const shouldOverwrite = forceRegenerate || !!templateUrl;
+
+    // ── Dynamic Google Slides Template Preparation ──
+    const templateLink =
+      (templateUrl as string) ||
+      (event.template_url as string) ||
+      (event.certificate_image_url as string) ||
+      "";
+
+    const slideMatch = templateLink.match(/\/presentation\/d\/([a-zA-Z0-9_-]+)/);
+    let slideBytes: Uint8Array | null = null;
+    let slideWidth = 960;
+    let slideHeight = 540;
+    let contentWidth = 960;
+    let isDark = false;
+    let bgR = 0, bgG = 0, bgB = 0;
+
+    if (slideMatch) {
       try {
-        const res = await fetch(templateUrl);
-        templateHtml = await res.text();
-      } catch {
-        // Template fetch failed — continue with pdf-lib PDF path
-        templateHtml = null;
+        const slideId = slideMatch[1];
+        const res = await fetch(
+          `https://docs.google.com/presentation/d/${slideId}/export/png`
+        );
+        if (res.ok) {
+          slideBytes = new Uint8Array(await res.arrayBuffer());
+          const dv = new DataView(
+            slideBytes.buffer,
+            slideBytes.byteOffset,
+            slideBytes.byteLength
+          );
+          slideWidth = dv.getUint32(16);
+          slideHeight = dv.getUint32(20);
+          contentWidth = slideWidth;
+
+          try {
+            let pos = 8;
+            const chunks: Uint8Array[] = [];
+            while (pos < slideBytes.length) {
+              const len = dv.getUint32(pos);
+              const type = String.fromCharCode(
+                slideBytes[pos + 4],
+                slideBytes[pos + 5],
+                slideBytes[pos + 6],
+                slideBytes[pos + 7]
+              );
+              if (type === "IDAT") {
+                chunks.push(slideBytes.subarray(pos + 8, pos + 8 + len));
+              }
+              pos += 8 + len + 4;
+            }
+            const totalLen = chunks.reduce((acc, c) => acc + c.length, 0);
+            const merged = new Uint8Array(totalLen);
+            let curOff = 0;
+            for (const c of chunks) {
+              merged.set(c, curOff);
+              curOff += c.length;
+            }
+
+            const ds = new DecompressionStream("deflate");
+            const writer = ds.writable.getWriter();
+            writer.write(merged);
+            writer.close();
+            const decompressed = new Uint8Array(
+              await new Response(ds.readable).arrayBuffer()
+            );
+
+            const colorType = slideBytes[25];
+            const bytesPerPixel = colorType === 6 ? 4 : colorType === 2 ? 3 : 1;
+            const rowSize = 1 + slideWidth * bytesPerPixel;
+
+            // Check if right edge has white canvas padding
+            const cy = Math.floor(slideHeight / 2);
+            const rowOff = cy * rowSize;
+            const rightPixelOff = rowOff + 1 + (slideWidth - 10) * bytesPerPixel;
+            if (
+              decompressed[rightPixelOff] > 250 &&
+              decompressed[rightPixelOff + 1] > 250 &&
+              decompressed[rightPixelOff + 2] > 250
+            ) {
+              for (let x = slideWidth - 1; x >= 0; x--) {
+                let allWhite = true;
+                for (const y of [
+                  Math.floor(slideHeight * 0.2),
+                  Math.floor(slideHeight * 0.5),
+                  Math.floor(slideHeight * 0.8),
+                ]) {
+                  const off = y * rowSize + 1 + x * bytesPerPixel;
+                  if (
+                    decompressed[off] < 240 ||
+                    decompressed[off + 1] < 240 ||
+                    decompressed[off + 2] < 240
+                  ) {
+                    allWhite = false;
+                    break;
+                  }
+                }
+                if (!allWhite) {
+                  contentWidth = x + 1;
+                  break;
+                }
+              }
+            }
+
+            // Sample background color near center of certificate
+            const sampleX = Math.floor(contentWidth * 0.25);
+            const sampleY = Math.floor(slideHeight * 0.5);
+            const sOff = sampleY * rowSize + 1 + sampleX * bytesPerPixel;
+            bgR = decompressed[sOff];
+            bgG = decompressed[sOff + 1];
+            bgB = decompressed[sOff + 2];
+            isDark = bgR * 0.299 + bgG * 0.587 + bgB * 0.114 < 128;
+          } catch (e) {
+            console.warn("PNG decompression inspection note:", e);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch Google Slides export:", err);
       }
     }
 
-    // ── Generate per-student ──
+    // ── Generate per attendee ──
     let generated = 0;
     let skipped = 0;
     const errors: string[] = [];
 
-    for (const row of attendees) {
-      const userId = (row as { user_id: string }).user_id;
-      const userInfo = (row as { users: { id: string; name: string } | null }).users;
-      const studentName = userInfo?.name ?? "Member";
-
-      if (existingUserIds.has(userId)) {
+    for (const [userId, studentName] of userMap.entries()) {
+      if (existingUserIds.has(userId) && !shouldOverwrite) {
         skipped++;
         continue;
       }
 
       try {
-        const certId = makeCertId(eventId, userId);
+        const certId      = makeCertId(eventId, userId);
         const storagePath = `${eventId}/${userId}.pdf`;
-        let certUrl = "";
+        let   certUrl     = "";
+        let   pdfBytes: Uint8Array;
 
-        const hasTemplate = !!event.template_url;
-
-        if (!hasTemplate) {
-          // ── Build PDF Natively (Fallback) ──
-          const pdfBytes = await buildCertificatePdf({
+        if (slideBytes) {
+          // Dynamic Google Slides presentation template path
+          pdfBytes = await buildGoogleSlidesCertificatePdf({
+            slideBytes,
+            slideWidth,
+            slideHeight,
+            contentWidth,
+            isDark,
+            bgR,
+            bgG,
+            bgB,
+            studentName,
+            fieldPositions: event.certificate_field_positions as Record<string, FieldConfig>,
+          });
+        } else if (
+          event.certificate_template_type === "image" &&
+          event.certificate_image_url
+        ) {
+          // Image template + coordinate overlay
+          const fieldPositions =
+            (event.certificate_field_positions as Record<string, FieldConfig>) ?? {};
+          const fieldValues: Record<string, string> = {
+            student_name:     studentName,
+            event_name:       eventTitle,
+            event_date:       eventDate,
+            certificate_id:   certId,
+            coordinator_name: coordinatorName,
+            chair_name:       chairName,
+          };
+          pdfBytes = await buildImageCertificatePdf({
+            imageUrl: event.certificate_image_url as string,
+            fieldPositions,
+            fieldValues,
+          });
+        } else {
+          // Standard built-in circuit certificate fallback
+          pdfBytes = await buildCertificatePdf({
             studentName,
             eventName: eventTitle,
             eventDate,
@@ -414,34 +823,28 @@ serve(async (req: Request) => {
             certificateId: certId,
             category,
           });
-
-          // ── Upload PDF to Storage ──
-          const { error: uploadErr } = await supabase.storage
-            .from(STORAGE_BUCKET)
-            .upload(storagePath, pdfBytes, {
-              contentType: "application/pdf",
-              upsert: true,
-            });
-
-          if (uploadErr) {
-            errors.push(`Upload failed for ${userId}: ${uploadErr.message}`);
-            continue;
-          }
-
-          // ── Get signed URL (10-year expiry) ──
-          const { data: signed } = await supabase.storage
-            .from(STORAGE_BUCKET)
-            .createSignedUrl(storagePath, 60 * 60 * 24 * 365 * 10);
-
-          certUrl = signed?.signedUrl ?? "";
-        } else {
-          // Client will perform HTML-to-PDF generation.
-          // Set certUrl to a special marker or just the template url
-          certUrl = `template:${event.template_url}`;
         }
 
-        // ── Insert certificate row ──
-        const { error: insertErr } = await supabase.from("certificates").upsert(
+        const { error: uploadErr } = await supabase.storage
+          .from(STORAGE_BUCKET)
+          .upload(storagePath, pdfBytes, {
+            contentType: "application/pdf",
+            upsert: true,
+          });
+
+        if (uploadErr) {
+          errors.push(`Upload failed for ${userId}: ${uploadErr.message}`);
+          continue;
+        }
+
+        const { data: pubUrlData } = supabase.storage
+          .from(STORAGE_BUCKET)
+          .getPublicUrl(storagePath);
+
+        certUrl = pubUrlData?.publicUrl ?? "";
+
+        // ── Upsert certificate row (updating existing if overwriting) ──
+        const { error: upsertErr } = await supabase.from("certificates").upsert(
           {
             event_id:        eventId,
             user_id:         userId,
@@ -449,16 +852,15 @@ serve(async (req: Request) => {
             certificate_url: certUrl,
             storage_path:    storagePath,
             issued_at:       new Date().toISOString(),
-            // Legacy columns
-            title:           `Certificate of Participation – ${eventTitle}`,
+            title:           `Certificate of Participation — ${eventTitle}`,
             description:     `Awarded for attending ${eventTitle} on ${eventDate}`,
             file_url:        certUrl,
           },
-          { onConflict: "event_id,user_id", ignoreDuplicates: true }
+          { onConflict: "event_id,user_id" }
         );
 
-        if (insertErr) {
-          errors.push(`DB insert failed for ${userId}: ${insertErr.message}`);
+        if (upsertErr) {
+          errors.push(`DB upsert failed for ${userId}: ${upsertErr.message}`);
           continue;
         }
 
@@ -468,20 +870,31 @@ serve(async (req: Request) => {
       }
     }
 
-    // ── Mark event as finalized ──
+    // ── Mark event attendance as finalized ──
     await supabase
       .from("events")
       .update({ attendance_finalized: true })
       .eq("id", eventId);
 
     return new Response(
-      JSON.stringify({ generated, skipped_existing: skipped, errors }),
-      { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+      JSON.stringify({
+        generated,
+        skipped_existing: skipped,
+        total: userMap.size,
+        errors,
+      }),
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+        },
+      }
     );
   } catch (e) {
-    return new Response(JSON.stringify({ error: String(e) }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ error: String(e) }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
   }
 });
+

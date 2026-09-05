@@ -30,6 +30,7 @@ export default function HomePage() {
 
   useEffect(() => {
     const load = async () => {
+      if (!user?.id) return;
       setIsLoading(true);
       const [evRes, annRes, attRes] = await Promise.all([
         supabase.from('events').select('id,title,date,location,type,description,poster_url,is_paid,member_price,non_member_price,allowed_roles').order('date', { ascending: true }),

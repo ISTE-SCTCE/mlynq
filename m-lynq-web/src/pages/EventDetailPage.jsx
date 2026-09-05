@@ -237,15 +237,19 @@ export default function EventDetailPage() {
   useEffect(() => {
     const load = async () => {
       setIsLoading(true);
-      const [evRes, attRes, certRes] = await Promise.all([
-        supabase.from('events').select().eq('id', parseInt(id)).maybeSingle(),
-        supabase.from('attendance').select('id').eq('event_id', parseInt(id)).eq('user_id', user.id).limit(1),
-        supabase.from('certificates')
-          .select('id, certificate_url, file_url, issued_at, student_name, user_id')
-          .eq('event_id', parseInt(id))
-          .eq('user_id', user.id)
-          .maybeSingle(),
-      ]);
+      const evPromise = supabase.from('events').select().eq('id', parseInt(id)).maybeSingle();
+      const attPromise = user?.id
+        ? supabase.from('attendance').select('id').eq('event_id', parseInt(id)).eq('user_id', user.id).limit(1)
+        : Promise.resolve({ data: [] });
+      const certPromise = user?.id
+        ? supabase.from('certificates')
+            .select('id, certificate_url, file_url, issued_at, student_name, user_id')
+            .eq('event_id', parseInt(id))
+            .eq('user_id', user.id)
+            .maybeSingle()
+        : Promise.resolve({ data: null });
+
+      const [evRes, attRes, certRes] = await Promise.all([evPromise, attPromise, certPromise]);
       const ev = evRes.data;
       setEvent(ev);
       setIsAttended((attRes.data || []).length > 0);
