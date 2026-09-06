@@ -1,0 +1,8 @@
+{
+  "name": "mlynq-root",
+  "private": true,
+  "scripts": {
+    "vercel-build": "npm install --prefix m-lynq-web && npm run build --prefix m-lynq-web",
+    "build": "npm install --prefix m-lynq-web && npm run build --prefix m-lynq-web"
+  }
+}

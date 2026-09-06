@@ -1,0 +1,10 @@
+{
+  "framework": null,
+  "outputDirectory": "m-lynq-web/dist",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/m-lynq-web/"
+    }
+  ]
+}
