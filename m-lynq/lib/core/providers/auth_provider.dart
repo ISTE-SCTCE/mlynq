@@ -133,7 +133,7 @@ class AuthNotifier extends StateNotifier<MemberAuthState> {
         'email': userEmail,
         'name': userEmail.split('@').first,
         'role': 'member',
-        'is_iste_member': true,
+        'is_iste_member': isIsteMemberEmail(userEmail),
       });
 
       if (p['iste_membership_id'] != null) {
@@ -171,18 +171,32 @@ class AuthNotifier extends StateNotifier<MemberAuthState> {
 
     final profileRes = await _supabase
         .from('profiles')
-        .select('id, iste_membership_id, name, phone, email, is_iste_member')
+        .select('id, iste_membership_id, name, phone, email, is_iste_member, is_registered')
         .ilike('email', cleanEmail)
         .maybeSingle();
 
     if (profileRes != null) {
-      return {
-        'status': 'member_otp_login',
-        'is_iste_member': profileRes['is_iste_member'] ?? true,
-        'iste_id': profileRes['iste_membership_id'],
-        'name': profileRes['name'] ?? '',
-        'phone': profileRes['phone'] ?? '',
-      };
+      final isMember = (profileRes['is_iste_member'] == true) ||
+          (profileRes['iste_membership_id'] != null &&
+              profileRes['iste_membership_id'].toString().trim().isNotEmpty);
+
+      if (isMember) {
+        return {
+          'status': 'member_otp_login',
+          'is_iste_member': true,
+          'iste_id': profileRes['iste_membership_id'],
+          'name': profileRes['name'] ?? '',
+          'phone': profileRes['phone'] ?? '',
+        };
+      } else {
+        return {
+          'status': 'guest_login',
+          'is_iste_member': false,
+          'iste_id': null,
+          'name': profileRes['name'] ?? '',
+          'phone': profileRes['phone'] ?? '',
+        };
+      }
     }
 
     return null;
@@ -206,11 +220,32 @@ class AuthNotifier extends StateNotifier<MemberAuthState> {
 
     if (res.user != null) {
       try {
-        await _supabase.from('profiles').upsert({
+        final pendingData = _pendingSignUpData ?? await _restorePendingSignUpData();
+        final Map<String, dynamic> updateData = {
           'id': res.user!.id,
           'email': cleanEmail,
           'status': 'active',
-        }, onConflict: 'id');
+        };
+
+        if (pendingData != null && pendingData.isNotEmpty) {
+          if (pendingData['name'] != null && pendingData['name'].toString().trim().isNotEmpty) {
+            updateData['name'] = pendingData['name'].toString().trim();
+          }
+          if (pendingData['phone'] != null && pendingData['phone'].toString().trim().isNotEmpty) {
+            updateData['phone'] = pendingData['phone'].toString().trim();
+          }
+          if (pendingData['roll_number'] != null && pendingData['roll_number'].toString().trim().isNotEmpty) {
+            updateData['roll_number'] = pendingData['roll_number'].toString().trim();
+          }
+          if (pendingData['college'] != null && pendingData['college'].toString().trim().isNotEmpty) {
+            updateData['college'] = pendingData['college'].toString().trim();
+          }
+          updateData['role'] = 'member';
+          updateData['is_registered'] = true;
+          updateData['is_iste_member'] = false;
+        }
+
+        await _supabase.from('profiles').upsert(updateData, onConflict: 'id');
 
         await _loadProfile(res.user!);
       } catch (e) {

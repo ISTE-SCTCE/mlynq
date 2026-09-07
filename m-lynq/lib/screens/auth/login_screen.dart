@@ -113,7 +113,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       if (membership != null && membership['status'] == 'guest_login') {
         // Existing guest user: send OTP and go to Guest OTP verify
         _membershipTag = 'guest';
-        await ref.read(authProvider.notifier).requestOTP(email, isSignUp: false);
+        try {
+          await ref.read(authProvider.notifier).requestOTP(email, isSignUp: false);
+        } catch (_) {
+          await ref.read(authProvider.notifier).requestOTP(email, isSignUp: true);
+        }
         setState(() {
           _successMessage = 'OTP sent to your email!';
         });
