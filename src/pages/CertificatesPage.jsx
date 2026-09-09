@@ -40,12 +40,19 @@ function formatDate(dateStr) {
 function getCertificateCustomName(cert) {
   if (!cert) return 'Certificate of Participation';
   const raw = cert.title || cert._title;
+  const eventTitle = cert._eventTitle || cert.events?.title;
   if (raw && typeof raw === 'string' && raw.trim()) {
     if (raw.includes(' — ')) {
-      return raw.split(' — ')[0].trim();
+      const part = raw.split(' — ')[0].trim();
+      if (part) return part;
     }
     if (raw.includes(' - ')) {
-      return raw.split(' - ')[0].trim();
+      const part = raw.split(' - ')[0].trim();
+      if (part) return part;
+    }
+    // If raw is simply identical to event title, default to Certificate of Participation
+    if (eventTitle && raw.trim().toLowerCase() === eventTitle.trim().toLowerCase()) {
+      return 'Certificate of Participation';
     }
     return raw.trim();
   }
@@ -291,14 +298,18 @@ function CertCard({ cert, navigate }) {
             </div>
           )}
           <div style={{
-            fontFamily: "'Cormorant Garamond', 'Georgia', serif", fontSize: 16,
+            fontFamily: "'Cormorant Garamond', 'Georgia', serif", fontSize: 17,
             fontWeight: 700, color: T.navy, lineHeight: 1.3,
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}>
-            {eventTitle}
-          </div>
-          <div style={{ fontSize: 12, color: T.muted, fontFamily: "'Inter',sans-serif", marginTop: 2 }}>
             {certCustomName}
+          </div>
+          <div style={{
+            fontSize: 13, color: T.muted, fontFamily: "'Inter',sans-serif",
+            marginTop: 3, fontWeight: 500,
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          }}>
+            {eventTitle}
           </div>
           {dateLabel && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 6 }}>
