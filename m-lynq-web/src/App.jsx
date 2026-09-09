@@ -12,6 +12,7 @@ import AttendancePage from './pages/AttendancePage';
 import NotificationsPage from './pages/NotificationsPage';
 import ProfilePage from './pages/ProfilePage';
 import HistoryPage from './pages/HistoryPage';
+import QrPage from './pages/QrPage';
 import './index.css';
 
 export default function App() {
@@ -25,6 +26,7 @@ export default function App() {
 
           {/* Protected dashboard routes */}
           <Route path="/home" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+          <Route path="/qr" element={<ProtectedRoute><QrPage /></ProtectedRoute>} />
           <Route path="/events" element={<ProtectedRoute><EventsPage /></ProtectedRoute>} />
           <Route path="/events/:id" element={<ProtectedRoute><EventDetailPage /></ProtectedRoute>} />
           <Route path="/certificates" element={<ProtectedRoute><CertificatesPage /></ProtectedRoute>} />

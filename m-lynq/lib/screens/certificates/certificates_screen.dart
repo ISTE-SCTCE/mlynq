@@ -556,6 +556,13 @@ class _CertCard extends StatelessWidget {
       }
     }
 
+    final rawTitle = cert['title'] as String?;
+    final certCustomName = (rawTitle != null && rawTitle.trim().isNotEmpty)
+        ? (rawTitle.contains(' — ')
+            ? rawTitle.split(' — ')[0].trim()
+            : (rawTitle.contains(' - ') ? rawTitle.split(' - ')[0].trim() : rawTitle.trim()))
+        : 'Certificate of Participation';
+
     return GestureDetector(
       onTap: eventId != null ? () => context.push('/events/$eventId') : null,
       child: ClipRRect(
@@ -603,8 +610,7 @@ class _CertCard extends StatelessWidget {
                                   padding: const EdgeInsets.only(bottom: 3),
                                   child: Text(
                                     category.toUpperCase(),
-                                    style: TextStyle(
-                                      fontFamily: 'monospace',
+                                    style: GoogleFonts.robotoMono(
                                       fontSize: 10,
                                       fontWeight: FontWeight.w700,
                                       letterSpacing: 1.4,
@@ -621,7 +627,7 @@ class _CertCard extends StatelessWidget {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                'Certificate of Participation',
+                                certCustomName,
                                 style: GoogleFonts.inter(fontSize: 11, color: _T.muted),
                                 maxLines: 1, overflow: TextOverflow.ellipsis,
                               ),

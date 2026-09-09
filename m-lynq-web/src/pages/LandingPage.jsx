@@ -69,10 +69,10 @@ export default function LandingPage() {
         </div>
 
         {/* Stats */}
-        <div style={{ display: 'flex', gap: 40, justifyContent: 'center', marginTop: 72, flexWrap: 'wrap' }}>
-          {[['Events', 'Hosted yearly'], ['Members', 'Active & growing'], ['Certificates', 'Issued to members']].map(([num, label]) => (
+        <div style={{ display: 'flex', gap: 48, justifyContent: 'center', marginTop: 72, flexWrap: 'wrap' }}>
+          {[['50+', 'Events Hosted'], ['500+', 'Active Members'], ['1,200+', 'Certificates Issued']].map(([num, label]) => (
             <div key={label} style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 28, fontWeight: 700, color: '#D3E3F0' }}>🎓</div>
+              <div style={{ fontSize: 32, fontWeight: 700, color: '#D3E3F0', letterSpacing: '-0.5px' }}>{num}</div>
               <div style={{ fontSize: 13, color: 'rgba(211,227,240,0.5)', marginTop: 4, fontFamily: "'Inter', sans-serif" }}>{label}</div>
             </div>
           ))}
