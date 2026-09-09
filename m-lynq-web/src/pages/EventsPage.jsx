@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import DashboardLayout from '../components/DashboardLayout';
+import { CardSkeleton } from '../components/Skeleton';
 import { ChevronLeft, ChevronRight, MapPin, Clock } from 'lucide-react';
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -80,13 +82,13 @@ export default function EventsPage() {
         <div style={{ background: '#fff', borderRadius: 24, border: '2px solid #D3E3F0', padding: '24px', marginBottom: 24 }}>
           {/* Month navigation */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-            <button onClick={() => setCurrentDate(new Date(year, month - 1, 1))} style={chevBtn}>
+            <button onClick={() => setCurrentDate(new Date(year, month - 1, 1))} className="interactive-lift" style={chevBtn}>
               <ChevronLeft size={20} />
             </button>
             <h2 style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: 18, fontWeight: 700, color: '#111' }}>
               {MONTHS[month]} {year}
             </h2>
-            <button onClick={() => setCurrentDate(new Date(year, month + 1, 1))} style={chevBtn}>
+            <button onClick={() => setCurrentDate(new Date(year, month + 1, 1))} className="interactive-lift" style={chevBtn}>
               <ChevronRight size={20} />
             </button>
           </div>
@@ -110,19 +112,24 @@ export default function EventsPage() {
               });
               const isCurrentMonth = date.getMonth() === month;
               return (
-                <button key={date.toISOString()} onClick={() => setSelectedDate(date)} style={{
-                  width: '100%', aspectRatio: '1', borderRadius: '50%', border: isToday && !isSelected ? '2px solid #111' : 'none',
-                  background: isSelected ? '#111' : hasEvent ? '#D3E3F0' : 'transparent',
-                  color: isSelected ? '#fff' : isCurrentMonth ? '#111' : '#ccc',
-                  fontFamily: "'Inter',sans-serif", fontSize: 13, fontWeight: isSelected || hasEvent ? 600 : 400,
-                  cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  position: 'relative',
-                }}>
+                <motion.button
+                  key={date.toISOString()}
+                  onClick={() => setSelectedDate(date)}
+                  whileTap={{ scale: 0.92 }}
+                  style={{
+                    width: '100%', aspectRatio: '1', borderRadius: '50%', border: isToday && !isSelected ? '2px solid #111' : 'none',
+                    background: isSelected ? '#111' : hasEvent ? '#D3E3F0' : 'transparent',
+                    color: isSelected ? '#fff' : isCurrentMonth ? '#111' : '#ccc',
+                    fontFamily: "'Inter',sans-serif", fontSize: 13, fontWeight: isSelected || hasEvent ? 600 : 400,
+                    cursor: 'pointer', transition: 'background 0.2s, color 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    position: 'relative',
+                  }}
+                >
                   {date.getDate()}
                   {hasEvent && !isSelected && (
                     <span style={{ position: 'absolute', bottom: 3, left: '50%', transform: 'translateX(-50%)', width: 4, height: 4, borderRadius: '50%', background: '#5F85A2' }} />
                   )}
-                </button>
+                </motion.button>
               );
             })}
           </div>
@@ -135,8 +142,9 @@ export default function EventsPage() {
           </h3>
 
           {isLoading ? (
-            <div style={{ textAlign: 'center', padding: 40 }}>
-              <div style={{ width: 32, height: 32, border: '4px solid #D3E3F0', borderTopColor: '#5F85A2', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto' }} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <CardSkeleton />
+              <CardSkeleton />
             </div>
           ) : selectedEvents.length === 0 ? (
             <div style={{ background: '#fff', borderRadius: 20, border: '2px solid #D3E3F0', padding: '40px 24px', textAlign: 'center' }}>
@@ -146,10 +154,16 @@ export default function EventsPage() {
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {selectedEvents.map(ev => (
-                <div key={ev.id} onClick={() => navigate(`/events/${ev.id}`)} style={{ background: '#fff', borderRadius: 20, border: '2px solid #D3E3F0', padding: '18px 20px', cursor: 'pointer', transition: 'border-color 0.15s', display: 'flex', gap: 16, alignItems: 'center' }}
-                  onMouseEnter={e => e.currentTarget.style.borderColor = '#5F85A2'}
-                  onMouseLeave={e => e.currentTarget.style.borderColor = '#D3E3F0'}>
+              {selectedEvents.map((ev, i) => (
+                <motion.div
+                  key={ev.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.04, duration: 0.25 }}
+                  onClick={() => navigate(`/events/${ev.id}`)}
+                  className="interactive-lift"
+                  style={{ background: '#fff', borderRadius: 20, border: '2px solid #D3E3F0', padding: '18px 20px', cursor: 'pointer', display: 'flex', gap: 16, alignItems: 'center' }}
+                >
                   <div style={{ width: 48, height: 48, borderRadius: 14, background: `${getTypeColor(ev.type)}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <span style={{ fontSize: 22 }}>📚</span>
                   </div>
@@ -161,7 +175,7 @@ export default function EventsPage() {
                     </div>
                   </div>
                   <ChevronRight size={20} color="#D3E3F0" />
-                </div>
+                </motion.div>
               ))}
             </div>
           )}
@@ -171,10 +185,16 @@ export default function EventsPage() {
             <>
               <h3 style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: 16, fontWeight: 700, color: '#111', margin: '28px 0 14px' }}>All Upcoming Events</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {events.filter(e => new Date(e.date) >= new Date()).slice(0, 10).map(ev => (
-                  <div key={ev.id} onClick={() => navigate(`/events/${ev.id}`)} style={{ background: '#fff', borderRadius: 20, border: '2px solid #D3E3F0', padding: '18px 20px', cursor: 'pointer', display: 'flex', gap: 16, alignItems: 'center' }}
-                    onMouseEnter={e => e.currentTarget.style.borderColor = '#5F85A2'}
-                    onMouseLeave={e => e.currentTarget.style.borderColor = '#D3E3F0'}>
+                {events.filter(e => new Date(e.date) >= new Date()).slice(0, 10).map((ev, i) => (
+                  <motion.div
+                    key={ev.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.04, duration: 0.25 }}
+                    onClick={() => navigate(`/events/${ev.id}`)}
+                    className="interactive-lift"
+                    style={{ background: '#fff', borderRadius: 20, border: '2px solid #D3E3F0', padding: '18px 20px', cursor: 'pointer', display: 'flex', gap: 16, alignItems: 'center' }}
+                  >
                     <div style={{ width: 48, height: 48, borderRadius: 14, background: `${getTypeColor(ev.type)}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <Clock size={20} color={getTypeColor(ev.type)} />
                     </div>
@@ -187,7 +207,7 @@ export default function EventsPage() {
                       </div>
                     </div>
                     <ChevronRight size={20} color="#D3E3F0" />
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             </>

@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import { supabase } from '../lib/supabase';
 import DashboardLayout from '../components/DashboardLayout';
+import { Skeleton } from '../components/Skeleton';
 import { ArrowLeft, Calendar, Clock, MapPin, Star, CheckCircle, Lock, DollarSign, Award, Download, Eye, Loader2 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -18,6 +21,7 @@ function getTypeColor(type) {
 // ── Certificate section (past + attended events) ───────────────────────────────
 function CertificateSection({ certificate, finalized, eventTitle, eventId, coordinatorName, chairName }) {
   const auth = useAuth();
+  const { showToast } = useToast();
   const url = certificate?.certificate_url || certificate?.file_url || '';
   const issuedAt = certificate?.issued_at
     ? new Date(certificate.issued_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -121,7 +125,7 @@ function CertificateSection({ certificate, finalized, eventTitle, eventId, coord
         document.body.removeChild(container);
       } catch (err) {
         console.error('PDF Generation error:', err);
-        alert('Failed to generate PDF from template.');
+        showToast('Failed to generate PDF from template.', 'error');
       } finally {
         setIsDownloading(false);
       }
@@ -265,9 +269,17 @@ export default function EventDetailPage() {
 
   if (isLoading) return (
     <DashboardLayout>
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
-        <div style={{ width: 36, height: 36, border: '4px solid #D3E3F0', borderTopColor: '#5F85A2', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-        <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      <div style={{ maxWidth: 720, margin: '0 auto', padding: '24px' }}>
+        <Skeleton height="38px" width="100px" borderRadius="20px" style={{ marginBottom: 24 }} />
+        <Skeleton height="240px" borderRadius="24px" style={{ marginBottom: 24 }} />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 14, marginBottom: 24 }}>
+          {[1, 2, 3, 4].map(i => (
+            <Skeleton key={i} height="74px" borderRadius="16px" />
+          ))}
+        </div>
+        <Skeleton height="110px" borderRadius="20px" style={{ marginBottom: 16 }} />
+        <Skeleton height="110px" borderRadius="20px" style={{ marginBottom: 16 }} />
+        <Skeleton height="110px" borderRadius="20px" style={{ marginBottom: 24 }} />
       </div>
     </DashboardLayout>
   );
@@ -276,7 +288,7 @@ export default function EventDetailPage() {
     <DashboardLayout>
       <div style={{ textAlign: 'center', padding: 80 }}>
         <p style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: 18, color: '#5F85A2' }}>Event not found.</p>
-        <button onClick={() => navigate('/events')} style={{ marginTop: 16, padding: '10px 20px', background: '#111', color: '#fff', borderRadius: 20, border: 'none', cursor: 'pointer', fontFamily: "'Inter',sans-serif", fontWeight: 600 }}>Back to Events</button>
+        <button onClick={() => navigate('/events')} className="interactive-lift" style={{ marginTop: 16, padding: '10px 20px', background: '#111', color: '#fff', borderRadius: 20, border: 'none', cursor: 'pointer', fontFamily: "'Inter',sans-serif", fontWeight: 600 }}>Back to Events</button>
       </div>
     </DashboardLayout>
   );
@@ -287,7 +299,7 @@ export default function EventDetailPage() {
         <Lock size={56} color="#D3E3F0" style={{ marginBottom: 20 }} />
         <h2 style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: 22, fontWeight: 700, color: '#111', marginBottom: 10 }}>Event Not Available</h2>
         <p style={{ fontFamily: "'Inter',sans-serif", fontSize: 14, color: '#5F85A2' }}>This event is not available for your membership role.</p>
-        <button onClick={() => navigate('/events')} style={{ marginTop: 20, padding: '10px 20px', background: '#111', color: '#fff', borderRadius: 20, border: 'none', cursor: 'pointer', fontFamily: "'Inter',sans-serif", fontWeight: 600 }}>Back to Events</button>
+        <button onClick={() => navigate('/events')} className="interactive-lift" style={{ marginTop: 20, padding: '10px 20px', background: '#111', color: '#fff', borderRadius: 20, border: 'none', cursor: 'pointer', fontFamily: "'Inter',sans-serif", fontWeight: 600 }}>Back to Events</button>
       </div>
     </DashboardLayout>
   );
@@ -299,23 +311,30 @@ export default function EventDetailPage() {
   const isPast = eventDate ? eventDate < today : false;
   const daysAway = eventDate ? Math.ceil((eventDate - today) / (1000 * 60 * 60 * 24)) : null;
 
-  const perks = Array.isArray(event.perks) ? event.perks : (typeof event.perks === 'string' ? [event.perks] : []);
+  const perks = Array.isArray(event.perks) ? event.perks : (typeof event.perks === 'string' && event.perks.trim() ? [event.perks] : []);
   const posters = Array.isArray(event.posters) ? event.posters : (event.poster_url ? [event.poster_url] : []);
 
   const priceLabel = !event.is_paid ? 'Free' : membershipId ? `₹${event.member_price} (Member)` : `₹${event.non_member_price} (Non-member)`;
+
+  const infoCards = [
+    { icon: <Calendar size={18} color={typeColor} />, label: 'Date', value: eventDate ? eventDate.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : 'TBA' },
+    { icon: <Clock size={18} color={typeColor} />, label: 'Time', value: event.time || 'Schedule TBA' },
+    { icon: <MapPin size={18} color={typeColor} />, label: 'Venue', value: event.venue || event.location || 'Campus / Online' },
+    { icon: <DollarSign size={18} color={typeColor} />, label: 'Price', value: priceLabel },
+  ];
 
   return (
     <DashboardLayout>
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '24px' }}>
         {/* Back */}
-        <button onClick={() => navigate('/events')} style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#111', border: 'none', color: '#fff', padding: '9px 16px', borderRadius: 20, cursor: 'pointer', fontFamily: "'Space Grotesk',sans-serif", fontWeight: 600, fontSize: 14, marginBottom: 24 }}>
+        <button onClick={() => navigate('/events')} className="interactive-lift" style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#111', border: 'none', color: '#fff', padding: '9px 16px', borderRadius: 20, cursor: 'pointer', fontFamily: "'Space Grotesk',sans-serif", fontWeight: 600, fontSize: 14, marginBottom: 24 }}>
           <ArrowLeft size={16} /> Back
         </button>
 
         {/* Hero poster */}
         {posters.length > 0 ? (
           <div style={{ borderRadius: 24, overflow: 'hidden', marginBottom: 24, aspectRatio: '16/7', position: 'relative' }}>
-            <img src={posters[0]} alt={event.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <img src={posters[0]} alt={event.title} className="img-fade-in loaded" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 50%)' }} />
             <div style={{ position: 'absolute', bottom: 20, left: 20, right: 20 }}>
               {daysAway !== null && (
@@ -353,14 +372,9 @@ export default function EventDetailPage() {
           <CertificateSection certificate={certificate} finalized={finalized} eventTitle={event.title} eventId={event.id} coordinatorName={event.coordinator_name} chairName={event.chair_name} />
         )}
 
-        {/* Info cards */}
+        {/* Info cards (balanced 4 cards layout) */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 14, marginBottom: 24 }}>
-          {[
-            { icon: <Calendar size={18} color={typeColor} />, label: 'Date', value: eventDate ? eventDate.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : 'TBA' },
-            event.time && { icon: <Clock size={18} color={typeColor} />, label: 'Time', value: event.time },
-            (event.venue || event.location) && { icon: <MapPin size={18} color={typeColor} />, label: 'Venue', value: event.venue || event.location },
-            { icon: <DollarSign size={18} color={typeColor} />, label: 'Price', value: priceLabel },
-          ].filter(Boolean).map(info => (
+          {infoCards.map(info => (
             <div key={info.label} style={{ background: '#111', borderRadius: 16, padding: '16px 18px', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
               <div style={{ marginTop: 2 }}>{info.icon}</div>
               <div>
@@ -372,25 +386,25 @@ export default function EventDetailPage() {
         </div>
 
         {/* About */}
-        {event.description && (
-          <div style={{ background: '#fff', borderRadius: 20, border: '2px solid #D3E3F0', padding: '22px', marginBottom: 16 }}>
-            <h2 style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: 17, fontWeight: 700, color: '#111', marginBottom: 12 }}>About</h2>
-            <p style={{ fontFamily: "'Inter',sans-serif", fontSize: 14, color: '#5F85A2', lineHeight: 1.7 }}>{event.description}</p>
-          </div>
-        )}
+        <div style={{ background: '#fff', borderRadius: 20, border: '2px solid #D3E3F0', padding: '22px', marginBottom: 16 }}>
+          <h2 style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: 17, fontWeight: 700, color: '#111', marginBottom: 12 }}>About</h2>
+          <p style={{ fontFamily: "'Inter',sans-serif", fontSize: 14, color: '#5F85A2', lineHeight: 1.7, margin: 0 }}>
+            {event.description || 'No description provided for this event yet.'}
+          </p>
+        </div>
 
         {/* Details */}
-        {event.details && (
-          <div style={{ background: '#fff', borderRadius: 20, border: '2px solid #D3E3F0', padding: '22px', marginBottom: 16 }}>
-            <h2 style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: 17, fontWeight: 700, color: '#111', marginBottom: 12 }}>Event Details</h2>
-            <p style={{ fontFamily: "'Inter',sans-serif", fontSize: 14, color: '#5F85A2', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{event.details}</p>
-          </div>
-        )}
+        <div style={{ background: '#fff', borderRadius: 20, border: '2px solid #D3E3F0', padding: '22px', marginBottom: 16 }}>
+          <h2 style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: 17, fontWeight: 700, color: '#111', marginBottom: 12 }}>Event Details</h2>
+          <p style={{ fontFamily: "'Inter',sans-serif", fontSize: 14, color: '#5F85A2', lineHeight: 1.7, whiteSpace: 'pre-wrap', margin: 0 }}>
+            {event.details || 'No additional details provided for this event yet.'}
+          </p>
+        </div>
 
         {/* Perks */}
-        {perks.length > 0 && (
-          <div style={{ background: '#fff', borderRadius: 20, border: '2px solid #D3E3F0', padding: '22px', marginBottom: 24 }}>
-            <h2 style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: 17, fontWeight: 700, color: '#111', marginBottom: 14 }}>Perks & Highlights</h2>
+        <div style={{ background: '#fff', borderRadius: 20, border: '2px solid #D3E3F0', padding: '22px', marginBottom: 24 }}>
+          <h2 style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: 17, fontWeight: 700, color: '#111', marginBottom: 14 }}>Perks & Highlights</h2>
+          {perks.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {perks.map((perk, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
@@ -399,14 +413,39 @@ export default function EventDetailPage() {
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          ) : (
+            <p style={{ fontFamily: "'Inter',sans-serif", fontSize: 14, color: '#5F85A2', margin: 0 }}>
+              Perks will be announced soon.
+            </p>
+          )}
+        </div>
 
         {/* Register CTA (only for upcoming/ongoing events) */}
         {!isPast && (
-          <button onClick={() => alert('Registration flow not connected yet.')} style={{ width: '100%', padding: '16px', background: typeColor, color: '#fff', border: 'none', borderRadius: 28, fontSize: 16, fontWeight: 700, fontFamily: "'Space Grotesk',sans-serif", cursor: 'pointer', boxShadow: `0 8px 24px ${typeColor}40` }}>
+          <a
+            href="https://istesctce.in/events"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="interactive-lift"
+            style={{
+              display: 'block',
+              textAlign: 'center',
+              textDecoration: 'none',
+              width: '100%',
+              padding: '16px',
+              background: typeColor,
+              color: '#fff',
+              borderRadius: 28,
+              fontSize: 16,
+              fontWeight: 700,
+              fontFamily: "'Space Grotesk',sans-serif",
+              cursor: 'pointer',
+              boxShadow: `0 8px 24px ${typeColor}40`,
+              boxSizing: 'border-box',
+            }}
+          >
             Register Now
-          </button>
+          </a>
         )}
       </div>
 

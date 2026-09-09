@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import DashboardLayout from '../components/DashboardLayout';
+import { CardSkeleton } from '../components/Skeleton';
 import { Calendar, Award, Bell, ChevronRight, User, Clock, MapPin, Tag, QrCode } from 'lucide-react';
 
 const CATEGORY_PILLS = ['All', 'Announcements', 'Workshops', 'Tech Talks', 'Hackathons', 'Meetups', 'Seminars'];
@@ -33,7 +35,7 @@ export default function HomePage() {
       if (!user?.id) return;
       setIsLoading(true);
       const [evRes, annRes, attRes] = await Promise.all([
-        supabase.from('events').select('id,title,date,location,type,description,poster_url,is_paid,member_price,non_member_price,allowed_roles').order('date', { ascending: true }),
+        supabase.from('events').select('id,title,date,time,venue,location,type,description,poster_url,is_paid,member_price,non_member_price,allowed_roles').order('date', { ascending: true }),
         supabase.from('announcements').select('id,title,content,visibility,created_at').order('created_at', { ascending: false }),
         supabase.from('attendance').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
       ]);
@@ -154,7 +156,25 @@ export default function HomePage() {
         {/* Category pills */}
         <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, marginBottom: 24, scrollbarWidth: 'none' }}>
           {CATEGORY_PILLS.map(c => (
-            <button key={c} onClick={() => setCategory(c)} style={{ flexShrink: 0, padding: '8px 16px', borderRadius: 20, border: '2px solid', borderColor: category === c ? '#111' : '#D3E3F0', background: category === c ? '#111' : '#fff', color: category === c ? '#fff' : '#5F85A2', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: "'Space Grotesk',sans-serif", transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
+            <button
+              key={c}
+              onClick={() => setCategory(c)}
+              className="interactive-lift"
+              style={{
+                flexShrink: 0,
+                padding: '8px 16px',
+                borderRadius: 20,
+                border: '2px solid',
+                borderColor: category === c ? '#111' : '#D3E3F0',
+                background: category === c ? '#111' : '#fff',
+                color: category === c ? '#fff' : '#5F85A2',
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontFamily: "'Space Grotesk',sans-serif",
+                whiteSpace: 'nowrap',
+              }}
+            >
               {c}
             </button>
           ))}
@@ -162,8 +182,10 @@ export default function HomePage() {
 
         {/* Content */}
         {isLoading ? (
-          <div style={{ textAlign: 'center', padding: 60 }}>
-            <div style={{ width: 36, height: 36, border: '4px solid #D3E3F0', borderTopColor: '#5F85A2', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto' }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {[0, 1, 2].map(k => (
+              <CardSkeleton key={k} height={120} />
+            ))}
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -172,21 +194,40 @@ export default function HomePage() {
             )}
             {filteredItems.map((item, i) => {
               if (item._type === 'announcement') return (
-                <Link key={`ann-${item.id}`} to="/notifications" style={{ textDecoration: 'none', background: '#fff', borderRadius: 20, padding: '20px 22px', border: '2px solid #D3E3F0', display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-                  <div style={{ width: 42, height: 42, borderRadius: 12, background: '#E8E2F5', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Bell size={20} color="#9B8FCA" />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 600, color: '#111', fontSize: 15, marginBottom: 4 }}>{item.title}</div>
-                    <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 13, color: '#5F85A2', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{item.content}</div>
-                  </div>
-                  <ChevronRight size={18} color="#D3E3F0" style={{ flexShrink: 0, marginTop: 2 }} />
-                </Link>
+                <motion.div
+                  key={`ann-${item.id}`}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.25, delay: i * 0.04, ease: 'easeOut' }}
+                >
+                  <Link
+                    to="/notifications"
+                    className="interactive-lift"
+                    style={{ textDecoration: 'none', background: '#fff', borderRadius: 20, padding: '20px 22px', border: '2px solid #D3E3F0', display: 'flex', alignItems: 'flex-start', gap: 14 }}
+                  >
+                    <div style={{ width: 42, height: 42, borderRadius: 12, background: '#E8E2F5', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Bell size={20} color="#9B8FCA" />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 600, color: '#111', fontSize: 15, marginBottom: 4 }}>{item.title}</div>
+                      <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 13, color: '#5F85A2', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{item.content}</div>
+                    </div>
+                    <ChevronRight size={18} color="#D3E3F0" style={{ flexShrink: 0, marginTop: 2 }} />
+                  </Link>
+                </motion.div>
               );
               const color = EVENT_COLORS[i % 3];
               const typeColor = getTypeColor(item.type);
+              const eventVenue = item.venue || item.location;
               return (
-                <div key={`ev-${item.id}`} style={{ background: color, borderRadius: 20, padding: '20px 22px', border: '2px solid rgba(95,133,162,0.15)' }}>
+                <motion.div
+                  key={`ev-${item.id}`}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.25, delay: i * 0.04, ease: 'easeOut' }}
+                  className="interactive-lift"
+                  style={{ background: color, borderRadius: 20, padding: '20px 22px', border: '2px solid rgba(95,133,162,0.15)' }}
+                >
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
                     <div style={{ flex: 1 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
@@ -195,15 +236,17 @@ export default function HomePage() {
                           <span style={{ fontSize: 11, fontWeight: 600, color: typeColor, background: 'rgba(255,255,255,0.7)', borderRadius: 10, padding: '2px 8px', border: `1px solid ${typeColor}30` }}>{item.type}</span>
                         )}
                       </div>
-                      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
                         {item.date && (
                           <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: "'Inter',sans-serif", fontSize: 12, color: '#5F85A2', fontWeight: 500 }}>
-                            <Clock size={13} />{new Date(item.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            <Clock size={13} />
+                            {new Date(item.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            {item.time ? ` • ${item.time}` : ''}
                           </span>
                         )}
-                        {item.location && (
+                        {eventVenue && (
                           <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: "'Inter',sans-serif", fontSize: 12, color: '#5F85A2', fontWeight: 500 }}>
-                            <MapPin size={13} />{item.location}
+                            <MapPin size={13} />{eventVenue}
                           </span>
                         )}
                       </div>
@@ -212,15 +255,25 @@ export default function HomePage() {
                       )}
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
-                    <Link to={`/events/${item.id}`} style={{ padding: '8px 18px', background: '#111', color: '#fff', borderRadius: 20, textDecoration: 'none', fontSize: 13, fontWeight: 600, fontFamily: "'Space Grotesk',sans-serif" }}>
+                  <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
+                    <Link
+                      to={`/events/${item.id}`}
+                      className="interactive-lift"
+                      style={{ padding: '8px 18px', background: '#111', color: '#fff', borderRadius: 20, textDecoration: 'none', fontSize: 13, fontWeight: 600, fontFamily: "'Space Grotesk',sans-serif", display: 'inline-flex', alignItems: 'center' }}
+                    >
                       More Details
                     </Link>
-                    <Link to={`/events/${item.id}`} style={{ padding: '8px 18px', background: 'rgba(95,133,162,0.15)', color: '#5F85A2', borderRadius: 20, textDecoration: 'none', fontSize: 13, fontWeight: 600, fontFamily: "'Space Grotesk',sans-serif", border: '1.5px solid rgba(95,133,162,0.25)' }}>
+                    <a
+                      href="https://istesctce.in/events"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="interactive-lift"
+                      style={{ padding: '8px 18px', background: 'rgba(95,133,162,0.15)', color: '#5F85A2', borderRadius: 20, textDecoration: 'none', fontSize: 13, fontWeight: 600, fontFamily: "'Space Grotesk',sans-serif", border: '1.5px solid rgba(95,133,162,0.25)', display: 'inline-flex', alignItems: 'center' }}
+                    >
                       Register Now
-                    </Link>
+                    </a>
                   </div>
-                </div>
+                </motion.div>
               );
             })}
           </div>

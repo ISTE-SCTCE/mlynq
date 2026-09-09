@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import { supabase } from '../lib/supabase';
 import DashboardLayout from '../components/DashboardLayout';
 import { Award, Calendar, Download, Eye, AlertCircle, Loader } from 'lucide-react';
@@ -119,6 +121,7 @@ function SkeletonCard() {
 // ── Certificate card ───────────────────────────────────────────────────────────
 function CertCard({ cert, navigate }) {
   const auth = useAuth();
+  const { showToast } = useToast();
   const category   = cert._category;
   const eventTitle = cert._eventTitle;
   const eventDate  = cert._eventDate;
@@ -139,6 +142,7 @@ function CertCard({ cert, navigate }) {
     } else {
       navigator.clipboard.writeText(url).then(() => {
         setShareMsg('Link copied!');
+        showToast('Certificate link copied to clipboard!', 'info');
         setTimeout(() => setShareMsg(''), 2000);
       }).catch(() => {});
     }
@@ -247,7 +251,7 @@ function CertCard({ cert, navigate }) {
         document.body.removeChild(container);
       } catch (err) {
         console.error('PDF Generation error:', err);
-        alert('Failed to generate PDF from template.');
+        showToast('Failed to generate PDF from template.', 'error');
       } finally {
         setIsDownloading(false);
       }
@@ -273,11 +277,10 @@ function CertCard({ cert, navigate }) {
   };
 
   return (
-    <div style={{
+    <div className="interactive-lift" style={{
       background: T.cardSurf, border: `1px solid ${T.cardBorder}`, borderRadius: 16,
       overflow: 'hidden', position: 'relative',
       cursor: eventId ? 'pointer' : 'default',
-      transition: 'box-shadow 0.18s, transform 0.18s',
     }}
       onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 20px rgba(27,42,74,0.10)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
       onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'none'; }}
@@ -506,6 +509,7 @@ export default function CertificatesPage() {
                 <button
                   key={f}
                   onClick={() => setActiveFilter(f)}
+                  className="interactive-lift"
                   style={{
                     padding: '6px 18px', borderRadius: 40, border: `1px solid ${active ? T.navy : T.cardBorder}`,
                     background: active ? T.navy : 'transparent', color: active ? '#fff' : T.navy,
@@ -532,8 +536,15 @@ export default function CertificatesPage() {
             <EmptyState filter={activeFilter} navigate={navigate} />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {filtered.map(cert => (
-                <CertCard key={cert.id} cert={cert} navigate={navigate} />
+              {filtered.map((cert, i) => (
+                <motion.div
+                  key={cert.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.04, duration: 0.25 }}
+                >
+                  <CertCard cert={cert} navigate={navigate} />
+                </motion.div>
               ))}
             </div>
           )}

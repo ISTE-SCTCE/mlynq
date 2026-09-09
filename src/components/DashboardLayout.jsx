@@ -1,4 +1,5 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { GraduationCap, Home, Calendar, Award, Bell, User, LogOut, Menu, X, History, QrCode } from 'lucide-react';
 import { useState } from 'react';
@@ -83,6 +84,7 @@ export default function DashboardLayout({ children }) {
           const active = location.pathname === item.path;
           return (
             <Link key={item.path} to={item.path} onClick={() => setMobileOpen(false)}
+              className="interactive-lift"
               style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', borderRadius: 14, marginBottom: 4, textDecoration: 'none', transition: 'all 0.15s', color: active ? '#111' : '#5F85A2', background: active ? '#D3E3F0' : 'transparent', fontWeight: active ? 600 : 500, fontSize: 14, fontFamily: "'Inter',sans-serif" }}>
               {item.icon}
               {item.label}
@@ -106,7 +108,7 @@ export default function DashboardLayout({ children }) {
             <div style={{ fontSize: 11, color: '#5F85A2', fontFamily: "'Inter',sans-serif" }}>{membershipId ? `ID: ${membershipId}` : 'Guest'}</div>
           </div>
         </div>
-        <button onClick={handleSignOut} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '9px 14px', background: 'rgba(217,125,85,0.1)', border: '1px solid rgba(217,125,85,0.2)', borderRadius: 12, color: '#D97D55', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: "'Inter',sans-serif" }}>
+        <button onClick={handleSignOut} className="interactive-lift" style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '9px 14px', background: 'rgba(217,125,85,0.1)', border: '1px solid rgba(217,125,85,0.2)', borderRadius: 12, color: '#D97D55', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: "'Inter',sans-serif" }}>
           <LogOut size={16} /> Sign Out
         </button>
       </div>
@@ -120,15 +122,30 @@ export default function DashboardLayout({ children }) {
         <SidebarContent />
       </aside>
 
-      {/* Mobile overlay sidebar */}
-      {mobileOpen && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 60 }}>
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)' }} onClick={() => setMobileOpen(false)} />
-          <aside style={{ position: 'absolute', left: 0, top: 0, width: 260, height: '100%', background: '#fff', overflowY: 'auto' }}>
-            <SidebarContent />
-          </aside>
-        </div>
-      )}
+      {/* Mobile overlay sidebar with smooth slide-in and backdrop fade */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 60 }}>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(2px)' }}
+              onClick={() => setMobileOpen(false)}
+            />
+            <motion.aside
+              initial={{ x: -280 }}
+              animate={{ x: 0 }}
+              exit={{ x: -280 }}
+              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+              style={{ position: 'absolute', left: 0, top: 0, width: 260, height: '100%', background: '#fff', overflowY: 'auto', boxShadow: '4px 0 24px rgba(0,0,0,0.15)' }}
+            >
+              <SidebarContent />
+            </motion.aside>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Mobile header */}
       <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: 60, background: '#fff', borderBottom: '1.5px solid #D3E3F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', zIndex: 30 }} className="mobile-header">

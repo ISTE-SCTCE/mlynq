@@ -4,10 +4,12 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import DashboardLayout from '../components/DashboardLayout';
-import { Calendar, MapPin, Clock, Search, Loader, History as HistoryIcon } from 'lucide-react';
+import { CardSkeleton } from '../components/Skeleton';
+import { Calendar, MapPin, Clock, Search, History as HistoryIcon } from 'lucide-react';
 
 // ── Design tokens (matches CertificatesPage) ────────────────────────────────
 const T = {
@@ -170,9 +172,10 @@ export default function HistoryPage() {
 
         {/* Loading */}
         {isLoading && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '60px 0', gap: '10px' }}>
-            <Loader size={28} color={T.gold} className="spin" />
-            <span style={{ color: T.caption, fontSize: '14px' }}>Loading your history...</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <CardSkeleton />
+            <CardSkeleton />
+            <CardSkeleton />
           </div>
         )}
 
@@ -197,20 +200,24 @@ export default function HistoryPage() {
 
         {/* Event cards */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          {filtered.map((event) => {
+          {filtered.map((event, i) => {
             const color = sealColor(event.category);
             const daysLabel = event.daysAttended.length > 1
               ? `Attended ${event.daysAttended.length}/${event.num_days || event.daysAttended.length} days`
               : `Day ${event.daysAttended[0]}`;
 
             return (
-              <div
+              <motion.div
                 key={event.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.04, duration: 0.25 }}
                 onClick={() => navigate(`/events/${event.id}`)}
+                className="interactive-lift"
                 style={{
                   display: 'flex', gap: '14px', background: T.cardSurf,
                   border: `1px solid ${T.cardBorder}`, borderRadius: '14px',
-                  padding: '14px', cursor: 'pointer', transition: 'transform 0.15s',
+                  padding: '14px', cursor: 'pointer',
                 }}
               >
                 {/* Category seal */}
@@ -255,7 +262,7 @@ export default function HistoryPage() {
                     </span>
                   )}
                 </div>
-              </div>
+              </motion.div>
             );
           })}
         </div>
