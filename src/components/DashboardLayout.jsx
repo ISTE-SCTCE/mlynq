@@ -170,6 +170,83 @@ export default function DashboardLayout({ children }) {
         {children}
       </main>
 
+      {/* Mobile Bottom Navigation Bar (App Experience on Phones) */}
+      <nav className="mobile-bottom-nav" style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0, height: 64,
+        background: 'rgba(255, 255, 255, 0.95)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        borderTop: '1.5px solid #D3E3F0',
+        display: 'none',
+        alignItems: 'center',
+        justifyContent: 'space-around',
+        zIndex: 35,
+        padding: '0 8px',
+        boxShadow: '0 -4px 20px rgba(0,0,0,0.06)'
+      }}>
+        <Link to="/home" style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+          textDecoration: 'none',
+          color: location.pathname === '/home' ? '#111' : '#5F85A2',
+          fontWeight: location.pathname === '/home' ? 700 : 500,
+          fontSize: 11,
+          fontFamily: "'Inter', sans-serif"
+        }}>
+          <Home size={20} color={location.pathname === '/home' ? '#111' : '#5F85A2'} />
+          <span>Home</span>
+        </Link>
+        <Link to="/events" style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+          textDecoration: 'none',
+          color: location.pathname.startsWith('/events') ? '#111' : '#5F85A2',
+          fontWeight: location.pathname.startsWith('/events') ? 700 : 500,
+          fontSize: 11,
+          fontFamily: "'Inter', sans-serif"
+        }}>
+          <Calendar size={20} color={location.pathname.startsWith('/events') ? '#111' : '#5F85A2'} />
+          <span>Events</span>
+        </Link>
+        {/* Center Floating QR Action Button */}
+        <button
+          onClick={() => setQrModalOpen(true)}
+          style={{
+            width: 48, height: 48, borderRadius: '50%',
+            background: 'linear-gradient(135deg, #181824 0%, #121218 100%)',
+            border: '2px solid rgba(58, 175, 169, 0.6)',
+            boxShadow: '0 4px 16px rgba(58, 175, 169, 0.35)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer',
+            transform: 'translateY(-10px)',
+            transition: 'transform 0.15s ease'
+          }}
+          title="Show My Attendance QR"
+        >
+          <QrCode size={22} color="#3AAFA9" />
+        </button>
+        <Link to="/certificates" style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+          textDecoration: 'none',
+          color: location.pathname === '/certificates' ? '#111' : '#5F85A2',
+          fontWeight: location.pathname === '/certificates' ? 700 : 500,
+          fontSize: 11,
+          fontFamily: "'Inter', sans-serif"
+        }}>
+          <Award size={20} color={location.pathname === '/certificates' ? '#111' : '#5F85A2'} />
+          <span>Certs</span>
+        </Link>
+        <Link to="/profile" style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+          textDecoration: 'none',
+          color: location.pathname === '/profile' ? '#111' : '#5F85A2',
+          fontWeight: location.pathname === '/profile' ? 700 : 500,
+          fontSize: 11,
+          fontFamily: "'Inter', sans-serif"
+        }}>
+          <User size={20} color={location.pathname === '/profile' ? '#111' : '#5F85A2'} />
+          <span>Profile</span>
+        </Link>
+      </nav>
+
       {/* Dynamic Student QR Modal Accessible Everywhere */}
       <StudentQrModal isOpen={qrModalOpen} onClose={() => setQrModalOpen(false)} />
 
@@ -177,10 +254,14 @@ export default function DashboardLayout({ children }) {
         @media (min-width: 768px) {
           .desktop-sidebar { display: block !important; }
           .mobile-header { display: none !important; }
+          .mobile-bottom-nav { display: none !important; }
           .dashboard-main { margin-left: 240px; }
         }
         @media (max-width: 767px) {
-          .dashboard-main { padding-top: 60px; }
+          .desktop-sidebar { display: none !important; }
+          .mobile-header { display: flex !important; }
+          .mobile-bottom-nav { display: flex !important; }
+          .dashboard-main { padding-top: 60px; padding-bottom: 76px; }
         }
       `}</style>
     </div>
