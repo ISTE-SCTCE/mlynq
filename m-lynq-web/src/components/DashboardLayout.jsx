@@ -268,13 +268,13 @@ export default function DashboardLayout({ children }) {
       <StudentQrModal isOpen={qrModalOpen} onClose={() => setQrModalOpen(false)} />
 
       <style>{`
-        @media (min-width: 768px) {
+        @media (min-width: 901px) {
           .desktop-sidebar { display: block !important; }
           .mobile-header { display: none !important; }
           .mobile-bottom-nav { display: none !important; }
           .dashboard-main { margin-left: 240px; }
         }
-        @media (max-width: 767px) {
+        @media (max-width: 900px) {
           .desktop-sidebar { display: none !important; }
           .mobile-header { display: flex !important; }
           .mobile-bottom-nav { display: flex !important; }

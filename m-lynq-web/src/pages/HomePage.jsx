@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
@@ -68,12 +68,13 @@ export default function HomePage() {
 
   return (
     <DashboardLayout>
-      <div style={{ maxWidth: 900, margin: '0 auto', padding: '32px 24px' }}>
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32, flexWrap: 'wrap', gap: 16 }}>
+      <div className="page-inner">
+
+        {/* â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
           <div>
             <h1 style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: 26, fontWeight: 700, color: '#111', lineHeight: 1.2 }}>
-              Hi, {name?.split(' ')[0] || 'Member'} 👋
+              Hi, {name?.split(' ')[0] || 'Member'} ðŸ‘‹
             </h1>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
               <div style={{ width: 8, height: 8, borderRadius: '50%', background: isMembershipValid ? '#48BB78' : '#E53E3E' }} />
@@ -93,198 +94,208 @@ export default function HomePage() {
           </Link>
         </div>
 
-        {/* Attendance QR Quick Card */}
+        {/* â”€â”€ Attendance QR Banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div style={{
           background: 'linear-gradient(135deg, #181824 0%, #121218 100%)',
-          borderRadius: 24,
-          padding: '20px 24px',
-          marginBottom: 24,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 16,
-          boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-          border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: 24, padding: '18px 24px', marginBottom: 24,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          flexWrap: 'wrap', gap: 14,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.15)', border: '1px solid rgba(255,255,255,0.1)',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <div style={{ width: 48, height: 48, borderRadius: 16, background: 'rgba(58, 175, 169, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ width: 46, height: 46, borderRadius: 14, background: 'rgba(58,175,169,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <QrCode size={24} color="#3AAFA9" />
             </div>
             <div>
-              <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 17, fontWeight: 700, color: '#fff' }}>
-                Event Attendance QR
-              </div>
-              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: 'rgba(211,227,240,0.6)', marginTop: 2 }}>
-                Dynamic AES-256-GCM token • Present to coordinator
-              </div>
+              <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: 16, fontWeight: 700, color: '#fff' }}>Event Attendance QR</div>
+              <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 12, color: 'rgba(211,227,240,0.6)', marginTop: 2 }}>Dynamic AES-256-GCM token â€¢ Present to coordinator</div>
             </div>
           </div>
-          <Link
-            to="/qr"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '10px 20px',
-              borderRadius: 20,
-              background: '#fff',
-              color: '#111',
-              textDecoration: 'none',
-              fontFamily: "'Space Grotesk', sans-serif",
-              fontSize: 13,
-              fontWeight: 700,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-            }}
-          >
+          <Link to="/qr" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 20, background: '#fff', color: '#111', textDecoration: 'none', fontFamily: "'Space Grotesk',sans-serif", fontSize: 13, fontWeight: 700, boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
             Show My QR <ChevronRight size={16} />
           </Link>
         </div>
 
-        {/* Quick stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 14, marginBottom: 32 }}>
+        {/* â”€â”€ Quick Stats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        <div className="stat-grid">
           {[
             { icon: <Calendar size={20} color="#5F85A2" />, value: upcomingEvents.length, label: 'Upcoming Events', bg: '#D9E9F9', to: '/events' },
             { icon: <Award size={20} color="#D97D55" />, value: attendanceCount, label: 'Events Attended', bg: '#FBE4D5', to: '/attendance' },
             { icon: <Bell size={20} color="#9B8FCA" />, value: announcements.length, label: 'Announcements', bg: '#E8E2F5', to: '/notifications' },
           ].map(s => (
-            <Link key={s.label} to={s.to} style={{ textDecoration: 'none', background: s.bg, borderRadius: 20, padding: '18px 20px', border: '2px solid rgba(95,133,162,0.15)', display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{ width: 42, height: 42, borderRadius: 12, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+            <Link key={s.label} to={s.to} className="interactive-lift" style={{ textDecoration: 'none', background: s.bg, borderRadius: 20, padding: '16px 18px', border: '2px solid rgba(95,133,162,0.15)', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 40, height: 40, borderRadius: 12, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', flexShrink: 0 }}>
                 {s.icon}
               </div>
               <div>
                 <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: 22, fontWeight: 700, color: '#111', lineHeight: 1 }}>{s.value}</div>
-                <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 12, color: '#5F85A2', fontWeight: 500, marginTop: 3 }}>{s.label}</div>
+                <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 11, color: '#5F85A2', fontWeight: 500, marginTop: 3 }}>{s.label}</div>
               </div>
             </Link>
           ))}
         </div>
 
-        {/* Category pills */}
-        <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, marginBottom: 24, scrollbarWidth: 'none' }}>
-          {CATEGORY_PILLS.map(c => (
-            <button
-              key={c}
-              onClick={() => setCategory(c)}
-              className="interactive-lift"
-              style={{
-                flexShrink: 0,
-                padding: '8px 16px',
-                borderRadius: 20,
-                border: '2px solid',
-                borderColor: category === c ? '#111' : '#D3E3F0',
-                background: category === c ? '#111' : '#fff',
-                color: category === c ? '#fff' : '#5F85A2',
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: 'pointer',
-                fontFamily: "'Space Grotesk',sans-serif",
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {c}
-            </button>
-          ))}
-        </div>
+        {/* â”€â”€ DUAL-VIEW GRID: Left feed + Right sidebar â”€â”€ */}
+        <div className="dash-grid">
 
-        {/* Content */}
-        {isLoading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {[0, 1, 2].map(k => (
-              <CardSkeleton key={k} height={120} />
-            ))}
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {filteredItems.length === 0 && (
-              <div style={{ textAlign: 'center', padding: 60, color: '#5F85A2', fontFamily: "'Inter',sans-serif" }}>No items found</div>
+          {/* LEFT COLUMN â€” Feed */}
+          <div>
+            {/* Category pills */}
+            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, marginBottom: 20, scrollbarWidth: 'none' }}>
+              {CATEGORY_PILLS.map(c => (
+                <button key={c} onClick={() => setCategory(c)} className="interactive-lift"
+                  style={{ flexShrink: 0, padding: '8px 16px', borderRadius: 20, border: '2px solid', borderColor: category === c ? '#111' : '#D3E3F0', background: category === c ? '#111' : '#fff', color: category === c ? '#fff' : '#5F85A2', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: "'Space Grotesk',sans-serif", whiteSpace: 'nowrap' }}>
+                  {c}
+                </button>
+              ))}
+            </div>
+
+            {/* Feed items */}
+            {isLoading ? (
+              <div className="feed-list">
+                {[0, 1, 2].map(k => <CardSkeleton key={k} height={120} />)}
+              </div>
+            ) : (
+              <div className="feed-list">
+                {filteredItems.length === 0 && (
+                  <div style={{ textAlign: 'center', padding: 60, color: '#5F85A2', fontFamily: "'Inter',sans-serif" }}>No items found</div>
+                )}
+                {filteredItems.map((item, i) => {
+                  if (item._type === 'announcement') return (
+                    <motion.div key={`ann-${item.id}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, delay: i * 0.04, ease: 'easeOut' }}>
+                      <Link to="/notifications" className="interactive-lift"
+                        style={{ textDecoration: 'none', background: '#fff', borderRadius: 20, padding: '18px 20px', border: '2px solid #D3E3F0', display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+                        <div style={{ width: 40, height: 40, borderRadius: 12, background: '#E8E2F5', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Bell size={20} color="#9B8FCA" />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 600, color: '#111', fontSize: 15, marginBottom: 4 }}>{item.title}</div>
+                          <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 13, color: '#5F85A2', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{item.content}</div>
+                        </div>
+                        <ChevronRight size={18} color="#D3E3F0" style={{ flexShrink: 0, marginTop: 2 }} />
+                      </Link>
+                    </motion.div>
+                  );
+                  const color = EVENT_COLORS[i % 3];
+                  const typeColor = getTypeColor(item.type);
+                  const eventVenue = item.venue || item.location;
+                  return (
+                    <motion.div key={`ev-${item.id}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, delay: i * 0.04, ease: 'easeOut' }}
+                      className="interactive-lift" style={{ background: color, borderRadius: 20, padding: '18px 20px', border: '2px solid rgba(95,133,162,0.15)' }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+                            <span style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, color: '#111', fontSize: 15 }}>{item.title}</span>
+                            {item.type && (
+                              <span style={{ fontSize: 11, fontWeight: 600, color: typeColor, background: 'rgba(255,255,255,0.7)', borderRadius: 10, padding: '2px 8px', border: `1px solid ${typeColor}30` }}>{item.type}</span>
+                            )}
+                          </div>
+                          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                            {item.date && (
+                              <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontFamily: "'Inter',sans-serif", fontSize: 12, color: '#5F85A2', fontWeight: 500 }}>
+                                <Clock size={12} />{new Date(item.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}{item.time ? ` â€¢ ${item.time}` : ''}
+                              </span>
+                            )}
+                            {eventVenue && (
+                              <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontFamily: "'Inter',sans-serif", fontSize: 12, color: '#5F85A2', fontWeight: 500 }}>
+                                <MapPin size={12} />{eventVenue}
+                              </span>
+                            )}
+                          </div>
+                          {item.description && (
+                            <p style={{ fontFamily: "'Inter',sans-serif", fontSize: 13, color: '#5F85A2', marginTop: 8, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{item.description}</p>
+                          )}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
+                        <Link to={`/events/${item.id}`} className="interactive-lift"
+                          style={{ padding: '8px 18px', background: '#111', color: '#fff', borderRadius: 20, textDecoration: 'none', fontSize: 13, fontWeight: 600, fontFamily: "'Space Grotesk',sans-serif", display: 'inline-flex', alignItems: 'center' }}>
+                          More Details
+                        </Link>
+                        <a href="https://istesctce.in/events" target="_blank" rel="noopener noreferrer" className="interactive-lift"
+                          style={{ padding: '8px 18px', background: 'rgba(95,133,162,0.15)', color: '#5F85A2', borderRadius: 20, textDecoration: 'none', fontSize: 13, fontWeight: 600, fontFamily: "'Space Grotesk',sans-serif", border: '1.5px solid rgba(95,133,162,0.25)', display: 'inline-flex', alignItems: 'center' }}>
+                          Register Now
+                        </a>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
             )}
-            {filteredItems.map((item, i) => {
-              if (item._type === 'announcement') return (
-                <motion.div
-                  key={`ann-${item.id}`}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.25, delay: i * 0.04, ease: 'easeOut' }}
-                >
-                  <Link
-                    to="/notifications"
-                    className="interactive-lift"
-                    style={{ textDecoration: 'none', background: '#fff', borderRadius: 20, padding: '20px 22px', border: '2px solid #D3E3F0', display: 'flex', alignItems: 'flex-start', gap: 14 }}
-                  >
-                    <div style={{ width: 42, height: 42, borderRadius: 12, background: '#E8E2F5', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Bell size={20} color="#9B8FCA" />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 600, color: '#111', fontSize: 15, marginBottom: 4 }}>{item.title}</div>
-                      <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 13, color: '#5F85A2', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{item.content}</div>
-                    </div>
-                    <ChevronRight size={18} color="#D3E3F0" style={{ flexShrink: 0, marginTop: 2 }} />
-                  </Link>
-                </motion.div>
-              );
-              const color = EVENT_COLORS[i % 3];
-              const typeColor = getTypeColor(item.type);
-              const eventVenue = item.venue || item.location;
-              return (
-                <motion.div
-                  key={`ev-${item.id}`}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.25, delay: i * 0.04, ease: 'easeOut' }}
-                  className="interactive-lift"
-                  style={{ background: color, borderRadius: 20, padding: '20px 22px', border: '2px solid rgba(95,133,162,0.15)' }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
-                        <span style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, color: '#111', fontSize: 16 }}>{item.title}</span>
-                        {item.type && (
-                          <span style={{ fontSize: 11, fontWeight: 600, color: typeColor, background: 'rgba(255,255,255,0.7)', borderRadius: 10, padding: '2px 8px', border: `1px solid ${typeColor}30` }}>{item.type}</span>
-                        )}
-                      </div>
-                      <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-                        {item.date && (
-                          <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: "'Inter',sans-serif", fontSize: 12, color: '#5F85A2', fontWeight: 500 }}>
-                            <Clock size={13} />
-                            {new Date(item.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                            {item.time ? ` • ${item.time}` : ''}
-                          </span>
-                        )}
-                        {eventVenue && (
-                          <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: "'Inter',sans-serif", fontSize: 12, color: '#5F85A2', fontWeight: 500 }}>
-                            <MapPin size={13} />{eventVenue}
-                          </span>
-                        )}
-                      </div>
-                      {item.description && (
-                        <p style={{ fontFamily: "'Inter',sans-serif", fontSize: 13, color: '#5F85A2', marginTop: 8, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{item.description}</p>
-                      )}
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
-                    <Link
-                      to={`/events/${item.id}`}
-                      className="interactive-lift"
-                      style={{ padding: '8px 18px', background: '#111', color: '#fff', borderRadius: 20, textDecoration: 'none', fontSize: 13, fontWeight: 600, fontFamily: "'Space Grotesk',sans-serif", display: 'inline-flex', alignItems: 'center' }}
-                    >
-                      More Details
-                    </Link>
-                    <a
-                      href="https://istesctce.in/events"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="interactive-lift"
-                      style={{ padding: '8px 18px', background: 'rgba(95,133,162,0.15)', color: '#5F85A2', borderRadius: 20, textDecoration: 'none', fontSize: 13, fontWeight: 600, fontFamily: "'Space Grotesk',sans-serif", border: '1.5px solid rgba(95,133,162,0.25)', display: 'inline-flex', alignItems: 'center' }}
-                    >
-                      Register Now
-                    </a>
-                  </div>
-                </motion.div>
-              );
-            })}
           </div>
-        )}
+
+          {/* RIGHT COLUMN â€” Desktop sidebar (upcoming events + past events) */}
+          <div className="dash-grid-right">
+            <div className="sidebar-sticky">
+
+              {/* Upcoming Events sidebar card */}
+              <div className="sidebar-card" style={{ marginBottom: 16 }}>
+                <div className="section-heading">
+                  <Calendar size={17} color="#5F85A2" /> Upcoming Events
+                </div>
+                {isLoading ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {[0, 1].map(k => <CardSkeleton key={k} height={70} />)}
+                  </div>
+                ) : upcomingEvents.length === 0 ? (
+                  <div style={{ color: '#5F85A2', fontSize: 13, fontFamily: "'Inter',sans-serif", textAlign: 'center', padding: '24px 0' }}>No upcoming events</div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {upcomingEvents.slice(0, 5).map((ev, i) => (
+                      <motion.div key={ev.id} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.22, delay: i * 0.06 }}>
+                        <Link to={`/events/${ev.id}`} style={{ textDecoration: 'none', display: 'flex', gap: 12, alignItems: 'flex-start', padding: '12px 14px', borderRadius: 14, background: '#EBF3FC', border: '1.5px solid rgba(95,133,162,0.12)', transition: 'background 0.15s' }}
+                          onMouseEnter={e => e.currentTarget.style.background = '#D3E3F0'}
+                          onMouseLeave={e => e.currentTarget.style.background = '#EBF3FC'}>
+                          <div style={{ width: 36, height: 36, borderRadius: 10, background: EVENT_COLORS[i % 3], display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <Calendar size={16} color={getTypeColor(ev.type)} />
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 600, fontSize: 13, color: '#111', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ev.title}</div>
+                            <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 11, color: '#5F85A2', marginTop: 2 }}>
+                              {ev.date ? new Date(ev.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : 'â€”'}{ev.venue ? ` â€¢ ${ev.venue}` : ''}
+                            </div>
+                          </div>
+                          <ChevronRight size={14} color="#D3E3F0" style={{ flexShrink: 0, marginTop: 4 }} />
+                        </Link>
+                      </motion.div>
+                    ))}
+                    {upcomingEvents.length > 5 && (
+                      <Link to="/events" style={{ display: 'block', textAlign: 'center', fontSize: 12, fontWeight: 600, color: '#5F85A2', padding: '6px 0', textDecoration: 'none', fontFamily: "'Inter',sans-serif" }}>
+                        +{upcomingEvents.length - 5} more â†’
+                      </Link>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Past Events sidebar card */}
+              {!isLoading && pastEvents.length > 0 && (
+                <div className="sidebar-card">
+                  <div className="section-heading">
+                    <Tag size={16} color="#D97D55" /> Recent Past
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {pastEvents.slice(0, 3).map((ev, i) => (
+                      <Link key={ev.id} to={`/events/${ev.id}`} style={{ textDecoration: 'none', display: 'flex', gap: 10, alignItems: 'center', padding: '10px 12px', borderRadius: 12, background: '#f8f8f8', border: '1.5px solid rgba(95,133,162,0.1)' }}>
+                        <div style={{ width: 32, height: 32, borderRadius: 8, background: '#FBE4D5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <Tag size={14} color="#D97D55" />
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 600, fontSize: 12, color: '#111', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ev.title}</div>
+                          <div style={{ fontSize: 11, color: '#5F85A2', fontFamily: "'Inter',sans-serif" }}>
+                            {ev.date ? new Date(ev.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : 'â€”'}
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+            </div>
+          </div>
+
+        </div>
       </div>
     </DashboardLayout>
   );
