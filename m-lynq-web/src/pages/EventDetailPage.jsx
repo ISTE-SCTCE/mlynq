@@ -359,16 +359,18 @@ export default function EventDetailPage() {
           </div>
         )}
 
-        {/* Attendance status */}
-        {isAttended && (
+        {/* Attendance / Participation status */}
+        {(isAttended || certificate) && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#F0FFF4', border: '1.5px solid #9AE6B4', borderRadius: 16, padding: '14px 18px', marginBottom: 20 }}>
             <CheckCircle size={20} color="#38A169" />
-            <span style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 600, color: '#276749', fontSize: 14 }}>You attended this event ✓</span>
+            <span style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 600, color: '#276749', fontSize: 14 }}>
+              {isAttended ? 'You attended this event ✓' : 'Certificate issued for this event ✓'}
+            </span>
           </div>
         )}
 
-        {/* ── Certificate section (past + attended only) ─────────────────── */}
-        {isPast && isAttended && (
+        {/* ── Certificate section ─────────────────── */}
+        {(certificate || (isPast && isAttended)) && (
           <CertificateSection certificate={certificate} finalized={finalized} eventTitle={event.title} eventId={event.id} coordinatorName={event.coordinator_name} chairName={event.chair_name} />
         )}
 

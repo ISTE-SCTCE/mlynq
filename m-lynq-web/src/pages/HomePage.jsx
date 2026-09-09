@@ -34,14 +34,21 @@ export default function HomePage() {
     const load = async () => {
       if (!user?.id) return;
       setIsLoading(true);
-      const [evRes, annRes, attRes] = await Promise.all([
+      const [evRes, annRes, attRes, certRes] = await Promise.all([
         supabase.from('events').select('id,title,date,time,venue,location,type,description,poster_url,is_paid,member_price,non_member_price,allowed_roles').order('date', { ascending: true }),
         supabase.from('announcements').select('id,title,content,visibility,created_at').order('created_at', { ascending: false }),
-        supabase.from('attendance').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+        supabase.from('attendance').select('event_id').eq('user_id', user.id),
+        supabase.from('certificates').select('event_id').eq('user_id', user.id),
       ]);
       setEvents(evRes.data || []);
       setAnnouncements(annRes.data || []);
-      setAttendanceCount(attRes.count || 0);
+
+      const attendedEventIds = new Set([
+        ...(attRes.data || []).map(r => r.event_id),
+        ...(certRes.data || []).map(r => r.event_id),
+      ].filter(Boolean));
+
+      setAttendanceCount(attendedEventIds.size);
       setIsLoading(false);
     };
     load();

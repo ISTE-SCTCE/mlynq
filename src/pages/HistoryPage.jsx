@@ -9,7 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import DashboardLayout from '../components/DashboardLayout';
 import { CardSkeleton } from '../components/Skeleton';
-import { Calendar, MapPin, Clock, Search, History as HistoryIcon } from 'lucide-react';
+import { Calendar, MapPin, Clock, Search, Award, History as HistoryIcon } from 'lucide-react';
 
 // ── Design tokens (matches CertificatesPage) ────────────────────────────────
 const T = {
@@ -63,9 +63,8 @@ export default function HistoryPage() {
       setIsLoading(true);
       setError(null);
 
-      // One query: attendance rows for this user, joined to their event details.
-      // day_number included so multi-day events show which day(s) attended.
-      const { data, error: err } = await supabase
+      // Query 1: Attendance rows for this user joined to event details
+      const attPromise = supabase
         .from('attendance')
         .select(`
           id,
@@ -80,17 +79,26 @@ export default function HistoryPage() {
         .eq('user_id', user.id)
         .order('scan_time', { ascending: false });
 
+      // Query 2: Certificates for this user (including Drive link & direct admin publish without QR scans)
+      const certPromise = supabase
+        .from('certificates')
+        .select('id, event_id, student_name, user_id, certificate_url, file_url, title, description, issued_at')
+        .eq('user_id', user.id)
+        .order('issued_at', { ascending: false });
+
+      const [attRes, certRes] = await Promise.all([attPromise, certPromise]);
+
       if (cancelled) return;
 
-      if (err) {
-        setError(err.message);
+      if (attRes.error) {
+        setError(attRes.error.message);
         setIsLoading(false);
         return;
       }
 
-      // Group multi-day attendance rows under one event card, collect day numbers
+      // Group attendance rows by event_id
       const grouped = new Map();
-      for (const row of data || []) {
+      for (const row of attRes.data || []) {
         if (!row.events) continue;
         const key = row.event_id;
         if (!grouped.has(key)) {
@@ -99,6 +107,7 @@ export default function HistoryPage() {
             daysAttended: [],
             firstScan: row.scan_time,
             lastScan: row.scan_time,
+            hasCertificate: false,
           });
         }
         const entry = grouped.get(key);
@@ -107,7 +116,49 @@ export default function HistoryPage() {
         if (new Date(row.scan_time) > new Date(entry.lastScan)) entry.lastScan = row.scan_time;
       }
 
-      setHistory(Array.from(grouped.values()));
+      // Process certificates: mark existing, and collect missing event IDs
+      const certs = certRes.data || [];
+      const missingEventIds = [];
+
+      for (const cert of certs) {
+        if (grouped.has(cert.event_id)) {
+          grouped.get(cert.event_id).hasCertificate = true;
+          grouped.get(cert.event_id).certificateUrl = cert.certificate_url || cert.file_url;
+        } else if (cert.event_id) {
+          missingEventIds.push(cert.event_id);
+        }
+      }
+
+      // Fetch event rows for events that have certificates but no QR attendance record
+      if (missingEventIds.length > 0) {
+        const uniqueMissingIds = [...new Set(missingEventIds)];
+        const { data: missingEvents } = await supabase
+          .from('events')
+          .select('id, title, description, date, location, category, poster_url, num_days, coordinator_name, chair_name')
+          .in('id', uniqueMissingIds);
+
+        for (const ev of missingEvents || []) {
+          const cert = certs.find(c => c.event_id === ev.id);
+          grouped.set(ev.id, {
+            ...ev,
+            daysAttended: [],
+            firstScan: null,
+            lastScan: null,
+            issuedAt: cert?.issued_at || ev.date,
+            hasCertificate: true,
+            certificateUrl: cert?.certificate_url || cert?.file_url,
+          });
+        }
+      }
+
+      // Sort history descending by event date or scan/issue date
+      const sortedHistory = Array.from(grouped.values()).sort((a, b) => {
+        const dateA = new Date(a.date || a.lastScan || a.issuedAt || 0);
+        const dateB = new Date(b.date || b.lastScan || b.issuedAt || 0);
+        return dateB - dateA;
+      });
+
+      setHistory(sortedHistory);
       setIsLoading(false);
     }
 
@@ -116,14 +167,15 @@ export default function HistoryPage() {
   }, [user?.id]);
 
   const years = useMemo(() => {
-    const set = new Set(history.map((e) => e.date ? new Date(e.date).getFullYear() : null).filter(Boolean));
+    const set = new Set(history.map((e) => (e.date || e.issuedAt) ? new Date(e.date || e.issuedAt).getFullYear() : null).filter(Boolean));
     return ['All', ...Array.from(set).sort((a, b) => b - a)];
   }, [history]);
 
   const filtered = useMemo(() => {
     return history.filter((e) => {
       const matchesSearch = !search || (e.title || '').toLowerCase().includes(search.toLowerCase());
-      const matchesYear = yearFilter === 'All' || (e.date && new Date(e.date).getFullYear() === yearFilter);
+      const eventYear = (e.date || e.issuedAt) ? new Date(e.date || e.issuedAt).getFullYear() : null;
+      const matchesYear = yearFilter === 'All' || eventYear === yearFilter;
       return matchesSearch && matchesYear;
     });
   }, [history, search, yearFilter]);
@@ -139,7 +191,7 @@ export default function HistoryPage() {
           </h1>
         </div>
         <p style={{ fontSize: '13px', color: T.caption, margin: '4px 0 20px 0' }}>
-          {history.length} event{history.length !== 1 ? 's' : ''} attended
+          {history.length} event{history.length !== 1 ? 's' : ''} in your history
         </p>
 
         {/* Search + year filter */}
@@ -244,19 +296,30 @@ export default function HistoryPage() {
 
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '6px' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: T.muted }}>
-                      <Calendar size={12} /> {formatDate(event.date)}
+                      <Calendar size={12} /> {formatDate(event.date || event.issuedAt)}
                     </span>
                     {event.location && (
                       <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: T.muted }}>
                         <MapPin size={12} /> {event.location}
                       </span>
                     )}
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: T.muted }}>
-                      <Clock size={12} /> Checked in {formatTime(event.firstScan)}
-                    </span>
+                    {event.firstScan ? (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: T.muted }}>
+                        <Clock size={12} /> Checked in {formatTime(event.firstScan)}
+                      </span>
+                    ) : (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: T.gold, fontWeight: 600 }}>
+                        <Award size={12} color={T.gold} /> Certificate Issued
+                      </span>
+                    )}
+                    {event.hasCertificate && event.firstScan && (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: T.gold, fontWeight: 600 }}>
+                        <Award size={12} color={T.gold} /> Certificate Ready
+                      </span>
+                    )}
                   </div>
 
-                  {(event.num_days || 1) > 1 && (
+                  {(event.num_days || 1) > 1 && event.daysAttended.length > 0 && (
                     <span style={{ display: 'inline-block', marginTop: '6px', fontSize: '11px', color: T.teal, fontWeight: 600 }}>
                       {daysLabel}
                     </span>
