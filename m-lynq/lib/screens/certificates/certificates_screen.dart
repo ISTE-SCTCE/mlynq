@@ -560,7 +560,11 @@ class _CertCard extends StatelessWidget {
     final certCustomName = (rawTitle != null && rawTitle.trim().isNotEmpty)
         ? (rawTitle.contains(' — ')
             ? rawTitle.split(' — ')[0].trim()
-            : (rawTitle.contains(' - ') ? rawTitle.split(' - ')[0].trim() : rawTitle.trim()))
+            : (rawTitle.contains(' - ') 
+                ? rawTitle.split(' - ')[0].trim() 
+                : (rawTitle.trim().toLowerCase() == eventTitle.trim().toLowerCase()
+                    ? 'Certificate of Participation'
+                    : rawTitle.trim())))
         : 'Certificate of Participation';
 
     return GestureDetector(
@@ -619,16 +623,16 @@ class _CertCard extends StatelessWidget {
                                   ),
                                 ),
                               Text(
-                                eventTitle,
+                                certCustomName,
                                 style: GoogleFonts.cormorantGaramond(
-                                    fontSize: 16, fontWeight: FontWeight.w700, color: _T.navy),
+                                    fontSize: 17, fontWeight: FontWeight.w700, color: _T.navy),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                certCustomName,
-                                style: GoogleFonts.inter(fontSize: 11, color: _T.muted),
+                                eventTitle,
+                                style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500, color: _T.muted),
                                 maxLines: 1, overflow: TextOverflow.ellipsis,
                               ),
                               const SizedBox(height: 6),
