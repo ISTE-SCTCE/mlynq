@@ -1,15 +1,276 @@
-import { useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { motion, useAnimation } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   GraduationCap, Calendar, Award, Bell, User, 
   ArrowRight, CheckCircle, Zap, Shield, BookOpen,
-  Smartphone, Monitor, QrCode, Sparkles, Check, ChevronRight
+  QrCode, Check, ChevronRight
 } from 'lucide-react';
+
+/* ─── ISTE logo as inline SVG (small badge) ─────────────────────────────── */
+function ISTELogo({ size = 32 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="60" height="60" rx="12" fill="rgba(58,175,169,0.18)" />
+      <text x="50%" y="54%" dominantBaseline="middle" textAnchor="middle"
+        fontFamily="'Space Grotesk', sans-serif" fontWeight="800" fontSize="14" fill="#3AAFA9">
+        ISTE
+      </text>
+    </svg>
+  );
+}
+
+/* ─── Animated login mockup for hero right column ───────────────────────── */
+function LoginMockup() {
+  const controls = useAnimation();
+  const btnControls = useAnimation();
+  const rippleControls = useAnimation();
+  const dashControls = useAnimation();
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    let running = true;
+
+    async function loop() {
+      while (running && mountedRef.current) {
+        // Reset
+        controls.set({ x: 0, y: 0, opacity: 1 });
+        btnControls.set({ scale: 1, background: 'linear-gradient(135deg, #5F85A2 0%, #3a5c7a 100%)' });
+        rippleControls.set({ opacity: 0, scale: 0 });
+        dashControls.set({ opacity: 0 });
+
+        await new Promise(r => setTimeout(r, 600));
+
+        // Cursor glide to Sign In button
+        await controls.start({ x: 90, y: 70, transition: { duration: 1.4, ease: 'easeInOut' } });
+        await new Promise(r => setTimeout(r, 200));
+
+        // Click: button scale down + ripple
+        await Promise.all([
+          btnControls.start({ scale: 0.93, transition: { duration: 0.12 } }),
+          rippleControls.start({ opacity: 0.7, scale: 2.4, transition: { duration: 0.35, ease: 'easeOut' } }),
+        ]);
+
+        await btnControls.start({
+          scale: 1,
+          background: 'linear-gradient(135deg, #3AAFA9 0%, #2B7A78 100%)',
+          transition: { duration: 0.25 }
+        });
+
+        // Ripple fade
+        await rippleControls.start({ opacity: 0, transition: { duration: 0.3 } });
+
+        // Cursor hides
+        await controls.start({ opacity: 0, transition: { duration: 0.2 } });
+
+        await new Promise(r => setTimeout(r, 300));
+
+        // Dashboard slides in
+        await dashControls.start({ opacity: 1, transition: { duration: 0.5, ease: 'easeOut' } });
+
+        // Hold dashboard visible
+        await new Promise(r => setTimeout(r, 1800));
+
+        // Dashboard fades out
+        await dashControls.start({ opacity: 0, transition: { duration: 0.4 } });
+        await new Promise(r => setTimeout(r, 400));
+      }
+    }
+
+    loop();
+    return () => {
+      running = false;
+      mountedRef.current = false;
+    };
+  }, [controls, btnControls, rippleControls, dashControls]);
+
+  return (
+    <div style={{
+      width: 340,
+      background: 'rgba(255,255,255,0.04)',
+      border: '1px solid rgba(255,255,255,0.1)',
+      borderRadius: 22,
+      overflow: 'hidden',
+      boxShadow: '0 32px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(58,175,169,0.1)',
+      position: 'relative',
+      userSelect: 'none',
+    }}>
+      {/* Browser chrome */}
+      <div style={{
+        height: 36,
+        background: 'rgba(9,13,22,0.9)',
+        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        display: 'flex',
+        alignItems: 'center',
+        padding: '0 12px',
+        gap: 6,
+      }}>
+        <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#EF4444', opacity: 0.8 }} />
+        <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#F59E0B', opacity: 0.8 }} />
+        <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#10B981', opacity: 0.8 }} />
+        <div style={{ flex: 1, marginLeft: 8, background: 'rgba(255,255,255,0.06)', borderRadius: 6, height: 18, display: 'flex', alignItems: 'center', paddingLeft: 8 }}>
+          <span style={{ fontSize: 9, color: 'rgba(211,227,240,0.4)', fontFamily: "'Inter', sans-serif" }}>mlynq.istesctce.in</span>
+        </div>
+        {/* ISTE logo badge — top-right corner */}
+        <div style={{ marginLeft: 4, opacity: 0.75 }}>
+          <ISTELogo size={22} />
+        </div>
+      </div>
+
+      {/* Login form body */}
+      <div style={{ position: 'relative', padding: '28px 28px 24px' }}>
+        {/* Login card */}
+        <div style={{ textAlign: 'center', marginBottom: 22 }}>
+          <div style={{
+            width: 44, height: 44, borderRadius: 14,
+            background: 'linear-gradient(135deg, #3AAFA9, #2B7A78)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            margin: '0 auto 10px',
+            boxShadow: '0 6px 20px rgba(58,175,169,0.35)'
+          }}>
+            <GraduationCap size={24} color="#fff" />
+          </div>
+          <div style={{ fontSize: 16, fontWeight: 800, color: '#F1F5F9', fontFamily: "'Space Grotesk', sans-serif" }}>
+            M-Lynq
+          </div>
+          <div style={{ fontSize: 11, color: 'rgba(211,227,240,0.5)', fontFamily: "'Inter', sans-serif", marginTop: 3 }}>
+            ISTE SCTCE Member Portal
+          </div>
+        </div>
+
+        {/* Email field */}
+        <div style={{
+          border: '1px solid rgba(211,227,240,0.15)',
+          borderRadius: 10,
+          padding: '10px 12px',
+          marginBottom: 10,
+          fontSize: 13,
+          color: 'rgba(211,227,240,0.4)',
+          fontFamily: "'Inter', sans-serif",
+          background: 'rgba(255,255,255,0.03)',
+        }}>
+          student@sctce.ac.in
+        </div>
+
+        {/* Password field */}
+        <div style={{
+          border: '1px solid rgba(211,227,240,0.15)',
+          borderRadius: 10,
+          padding: '10px 12px',
+          marginBottom: 20,
+          fontSize: 13,
+          color: 'rgba(211,227,240,0.25)',
+          fontFamily: "'Inter', sans-serif",
+          background: 'rgba(255,255,255,0.03)',
+        }}>
+          ••••••••
+        </div>
+
+        {/* Sign In button — animated */}
+        <div style={{ position: 'relative' }}>
+          {/* Ripple ring */}
+          <motion.div
+            animate={rippleControls}
+            initial={{ opacity: 0, scale: 0 }}
+            style={{
+              position: 'absolute',
+              top: '50%', left: '50%',
+              width: 120, height: 44,
+              marginLeft: -60, marginTop: -22,
+              borderRadius: 24,
+              background: 'rgba(58,175,169,0.3)',
+              pointerEvents: 'none',
+              zIndex: 0,
+            }}
+          />
+          <motion.div
+            animate={btnControls}
+            initial={{ scale: 1 }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              padding: '11px 0',
+              background: 'linear-gradient(135deg, #5F85A2 0%, #3a5c7a 100%)',
+              color: '#fff',
+              borderRadius: 24,
+              fontWeight: 700,
+              fontSize: 14,
+              fontFamily: "'Space Grotesk', sans-serif",
+              cursor: 'pointer',
+              position: 'relative',
+              zIndex: 1,
+            }}
+          >
+            <span>Sign In</span>
+            <ArrowRight size={15} />
+          </motion.div>
+        </div>
+
+        {/* Overlay: mini dashboard preview */}
+        <motion.div
+          animate={dashControls}
+          initial={{ opacity: 0 }}
+          style={{
+            position: 'absolute',
+            top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(9,13,22,0.97)',
+            borderRadius: '0 0 22px 22px',
+            padding: '16px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 10,
+            pointerEvents: 'none',
+          }}
+        >
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#3AAFA9', fontFamily: "'Space Grotesk', sans-serif", marginBottom: 4 }}>
+            ✓ Signed in — Welcome back!
+          </div>
+          {[
+            { label: 'Events Attended', val: '12', color: '#D9E9F9' },
+            { label: 'Certificates Earned', val: '8', color: '#E8E2F5' },
+            { label: 'Next Event', val: 'Offenso 2026', color: '#FBE4D5' },
+          ].map(c => (
+            <div key={c.label} style={{
+              background: c.color,
+              borderRadius: 12,
+              padding: '10px 14px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}>
+              <span style={{ fontSize: 11, fontWeight: 600, color: '#111', fontFamily: "'Inter', sans-serif" }}>{c.label}</span>
+              <span style={{ fontSize: 13, fontWeight: 800, color: '#333' }}>{c.val}</span>
+            </div>
+          ))}
+        </motion.div>
+
+        {/* Animated cursor dot */}
+        <motion.div
+          animate={controls}
+          initial={{ x: 0, y: 0, opacity: 1 }}
+          style={{
+            position: 'absolute',
+            top: 32, left: 20,
+            width: 14, height: 14,
+            borderRadius: '50% 50% 50% 0',
+            background: '#fff',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+            pointerEvents: 'none',
+            zIndex: 10,
+            transform: 'rotate(-45deg)',
+          }}
+        />
+      </div>
+    </div>
+  );
+}
 
 export default function LandingPage() {
   const { isAuthenticated, name } = useAuth();
-  const [activeDeviceView, setActiveDeviceView] = useState('mobile');
 
   return (
     <div style={{ fontFamily: "'Space Grotesk', sans-serif", minHeight: '100vh', background: '#090D16', color: '#F1F5F9', overflowX: 'hidden' }}>
@@ -108,426 +369,126 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* HERO SECTION */}
+      {/* HERO SECTION — Two-column split */}
       <section style={{
         position: 'relative',
-        textAlign: 'center',
-        padding: 'clamp(50px, 8vw, 90px) clamp(16px, 4vw, 32px) 40px',
-        maxWidth: 1120,
-        margin: '0 auto',
-        zIndex: 1
-      }}>
-        {/* Live Badge */}
-        <div style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 8,
-          background: 'rgba(58, 175, 169, 0.1)',
-          border: '1px solid rgba(58, 175, 169, 0.3)',
-          borderRadius: 28,
-          padding: '6px 16px',
-          marginBottom: 24
-        }}>
-          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#3AAFA9', boxShadow: '0 0 10px #3AAFA9' }} />
-          <span style={{ fontSize: 13, color: '#D3E3F0', fontWeight: 600, letterSpacing: '0.2px' }}>
-            Official Portal • ISTE SCTCE Chapter
-          </span>
-        </div>
-
-        {/* Hero Title */}
-        <h1 style={{
-          fontSize: 'clamp(34px, 6vw, 68px)',
-          fontWeight: 800,
-          lineHeight: 1.15,
-          letterSpacing: '-1.5px',
-          marginBottom: 20,
-          maxWidth: 860,
-          margin: '0 auto 20px'
-        }}>
-          Learn Something New Today.<br />
-          <span style={{
-            background: 'linear-gradient(135deg, #3AAFA9 0%, #7FD1AE 50%, #E8A87C 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text'
-          }}>
-            Campus Life, Unified.
-          </span>
-        </h1>
-
-        {/* Hero Subtitle */}
-        <p style={{
-          fontSize: 'clamp(15px, 2.2vw, 18px)',
-          color: 'rgba(211, 227, 240, 0.75)',
-          maxWidth: 620,
-          margin: '0 auto 36px',
-          lineHeight: 1.6,
-          fontFamily: "'Inter', sans-serif"
-        }}>
-          Your all-in-one portal for event registration, instant attendance verification, and custom-issued digital certificates — crafted for a first-class experience on both mobile and PC.
-        </p>
-
-        {/* Hero Actions */}
-        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 50 }}>
-          <Link
-            to={isAuthenticated ? "/home" : "/login"}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '13px 28px',
-              background: 'linear-gradient(135deg, #3AAFA9 0%, #2B7A78 100%)',
-              color: '#fff',
-              borderRadius: 30,
-              textDecoration: 'none',
-              fontWeight: 700,
-              fontSize: 15,
-              boxShadow: '0 8px 24px rgba(58,175,169,0.35)',
-              transition: 'transform 0.15s ease'
-            }}
-          >
-            <span>{isAuthenticated ? 'Open My Dashboard' : 'Get Started Now'}</span>
-            <ArrowRight size={18} />
-          </Link>
-          <a
-            href="#views-showcase"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '13px 24px',
-              background: 'rgba(255, 255, 255, 0.05)',
-              color: '#D3E3F0',
-              border: '1px solid rgba(211, 227, 240, 0.18)',
-              borderRadius: 30,
-              textDecoration: 'none',
-              fontWeight: 600,
-              fontSize: 15
-            }}
-          >
-            <Smartphone size={17} color="#3AAFA9" />
-            <span>Preview Mobile & PC</span>
-          </a>
-        </div>
-      </section>
-
-      {/* TWO VIEWS BEST-FIT INTERACTIVE SHOWCASE */}
-      <section id="views-showcase" style={{
-        padding: '20px clamp(16px, 4vw, 32px) 70px',
-        maxWidth: 1080,
+        padding: 'clamp(50px, 8vw, 90px) clamp(16px, 4vw, 40px) 40px',
+        maxWidth: 1200,
         margin: '0 auto',
         zIndex: 1,
-        position: 'relative'
       }}>
-        {/* View Switcher Header */}
-        <div style={{ textAlign: 'center', marginBottom: 28 }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#3AAFA9', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 8 }}>
-            <Sparkles size={14} /> Dual View Architecture
-          </div>
-          <h2 style={{ fontSize: 'clamp(24px, 4vw, 36px)', fontWeight: 800, letterSpacing: '-0.5px', marginBottom: 12 }}>
-            Engineered for Both Screens
-          </h2>
-          <p style={{ color: 'rgba(211, 227, 240, 0.65)', maxWidth: 520, margin: '0 auto 24px', fontSize: 14, fontFamily: "'Inter', sans-serif" }}>
-            Tap below to toggle between the widescreen PC layout and the compact on-the-go Mobile experience.
-          </p>
+        <style>{`
+          @keyframes heroGrid { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+          @media (max-width: 900px) {
+            .hero-grid { flex-direction: column !important; }
+            .hero-right { margin-top: 48px; display: flex; justify-content: center; }
+            .hero-mockup-wrap { transform: scale(0.88); transform-origin: center top; }
+          }
+        `}</style>
 
-          {/* Segmented Device Switcher Buttons */}
-          <div style={{
-            display: 'inline-flex',
-            background: 'rgba(255, 255, 255, 0.06)',
-            padding: 4,
-            borderRadius: 30,
-            border: '1px solid rgba(255, 255, 255, 0.12)'
-          }}>
-            <button
-              onClick={() => setActiveDeviceView('mobile')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '10px 22px',
-                borderRadius: 26,
-                border: 'none',
-                background: activeDeviceView === 'mobile' ? '#3AAFA9' : 'transparent',
-                color: activeDeviceView === 'mobile' ? '#090D16' : '#D3E3F0',
-                fontWeight: 700,
-                fontSize: 13,
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                fontFamily: "'Space Grotesk', sans-serif"
-              }}
-            >
-              <Smartphone size={16} /> Mobile View (Pocket Fit)
-            </button>
-            <button
-              onClick={() => setActiveDeviceView('pc')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '10px 22px',
-                borderRadius: 26,
-                border: 'none',
-                background: activeDeviceView === 'pc' ? '#3AAFA9' : 'transparent',
-                color: activeDeviceView === 'pc' ? '#090D16' : '#D3E3F0',
-                fontWeight: 700,
-                fontSize: 13,
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                fontFamily: "'Space Grotesk', sans-serif"
-              }}
-            >
-              <Monitor size={16} /> PC Dashboard (Full Screen)
-            </button>
-          </div>
-        </div>
+        <div className="hero-grid" style={{ display: 'flex', alignItems: 'center', gap: 'clamp(32px, 6vw, 80px)' }}>
 
-        {/* DEVICE MOCKUP CONTAINER */}
-        <div style={{
-          background: 'rgba(255, 255, 255, 0.02)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          borderRadius: 28,
-          padding: 'clamp(16px, 3vw, 36px)',
-          boxShadow: '0 20px 50px rgba(0,0,0,0.4)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center'
-        }}>
-          {activeDeviceView === 'mobile' ? (
-            /* 📱 MOBILE VIEW MOCKUP */
+          {/* ── LEFT COLUMN — copy ──────────────────────────────────── */}
+          <div style={{ flex: '1 1 420px', minWidth: 0, animation: 'heroGrid 0.7s ease-out both' }}>
+            {/* Pill Badge */}
             <div style={{
-              width: '100%',
-              maxWidth: 360,
-              background: '#0F1524',
-              borderRadius: 36,
-              border: '3px solid rgba(255, 255, 255, 0.15)',
-              boxShadow: '0 25px 60px rgba(0,0,0,0.6)',
-              overflow: 'hidden',
-              display: 'flex',
-              flexDirection: 'column'
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              background: 'rgba(58, 175, 169, 0.1)',
+              border: '1px solid rgba(58, 175, 169, 0.3)',
+              borderRadius: 28,
+              padding: '6px 16px',
+              marginBottom: 24
             }}>
-              {/* Phone Status Bar / Island */}
-              <div style={{ height: 26, background: '#090D16', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px' }}>
-                <div style={{ width: 90, height: 14, borderRadius: 10, background: '#1A2338' }} />
-              </div>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#3AAFA9', boxShadow: '0 0 10px #3AAFA9' }} />
+              <span style={{ fontSize: 13, color: '#D3E3F0', fontWeight: 600, letterSpacing: '0.2px' }}>
+                ISTE Student Chapter — Member Portal
+              </span>
+            </div>
 
-              {/* Mobile Mockup Header */}
-              <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ width: 28, height: 28, borderRadius: 8, background: '#3AAFA9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <GraduationCap size={16} color="#fff" />
-                  </div>
-                  <span style={{ fontWeight: 700, fontSize: 14 }}>M-Lynq</span>
-                </div>
-                <div style={{ fontSize: 11, padding: '3px 8px', borderRadius: 12, background: 'rgba(58,175,169,0.15)', color: '#3AAFA9', fontWeight: 600 }}>
-                  Live Portal
-                </div>
-              </div>
+            {/* Hero Title */}
+            <h1 style={{
+              fontSize: 'clamp(34px, 5.5vw, 62px)',
+              fontWeight: 800,
+              lineHeight: 1.12,
+              letterSpacing: '-1.5px',
+              marginBottom: 20,
+              textAlign: 'left',
+            }}>
+              Learn Something New Today.<br />
+              <span style={{
+                background: 'linear-gradient(135deg, #3AAFA9 0%, #7FD1AE 50%, #E8A87C 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text'
+              }}>
+                Campus Life, Unified.
+              </span>
+            </h1>
 
-              {/* Mobile Content Scroll Area */}
-              <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-                {/* Mobile QR Card */}
-                <div style={{
-                  background: 'linear-gradient(135deg, #182032 0%, #101522 100%)',
-                  borderRadius: 18,
-                  padding: '16px',
-                  border: '1px solid rgba(58,175,169,0.3)',
-                  display: 'flex',
+            {/* Hero Subtitle */}
+            <p style={{
+              fontSize: 'clamp(15px, 1.8vw, 17px)',
+              color: 'rgba(211, 227, 240, 0.75)',
+              maxWidth: 520,
+              marginBottom: 36,
+              lineHeight: 1.65,
+              fontFamily: "'Inter', sans-serif",
+              textAlign: 'left',
+            }}>
+              Your all-in-one portal for event registration, instant attendance verification, and custom-issued digital certificates — crafted for a first-class experience on both mobile and PC.
+            </p>
+
+            {/* Hero Actions */}
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 0, justifyContent: 'flex-start' }}>
+              <Link
+                to={isAuthenticated ? "/home" : "/login"}
+                style={{
+                  display: 'inline-flex',
                   alignItems: 'center',
-                  gap: 12
-                }}>
-                  <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(58,175,169,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <QrCode size={24} color="#3AAFA9" />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>Gate Check-in QR</div>
-                    <div style={{ fontSize: 11, color: 'rgba(211,227,240,0.6)', marginTop: 2 }}>Tap to present at event gate</div>
-                  </div>
-                  <span style={{ fontSize: 10, fontWeight: 700, background: '#3AAFA9', color: '#090D16', padding: '4px 8px', borderRadius: 10 }}>
-                    PASS
-                  </span>
-                </div>
-
-                {/* Mobile Event Item */}
-                <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 16, padding: '12px 14px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                    <span style={{ fontSize: 10, color: '#E8A87C', fontWeight: 700 }}>UPCOMING WORKSHOP</span>
-                    <span style={{ fontSize: 10, color: 'rgba(211,227,240,0.5)' }}>This Week</span>
-                  </div>
-                  <div style={{ fontSize: 13, fontWeight: 700 }}>Offenso 2026 Tech Summit</div>
-                  <div style={{ fontSize: 11, color: 'rgba(211,227,240,0.6)', marginTop: 2 }}>Campus Auditorium • SCTCE</div>
-                </div>
-
-                {/* Mobile Certificate Card */}
-                <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 16, padding: '12px 14px', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <Award size={18} color="#F5C842" />
-                    <div>
-                      <div style={{ fontSize: 12, fontWeight: 700 }}>Certificate of Appreciation</div>
-                      <div style={{ fontSize: 10, color: 'rgba(211,227,240,0.5)' }}>Custom Exec Issued • Verified</div>
-                    </div>
-                  </div>
-                  <span style={{ fontSize: 10, color: '#3AAFA9', fontWeight: 700 }}>PDF</span>
-                </div>
-              </div>
-
-              {/* Mobile Bottom App Bar Mock */}
-              <div style={{
-                height: 52,
-                background: 'rgba(15, 21, 36, 0.95)',
-                borderTop: '1px solid rgba(255,255,255,0.08)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-around',
-                padding: '0 10px'
-              }}>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                  <Calendar size={14} color="#3AAFA9" />
-                  <span style={{ fontSize: 9, color: '#3AAFA9', fontWeight: 700 }}>Home</span>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                  <BookOpen size={14} color="rgba(211,227,240,0.5)" />
-                  <span style={{ fontSize: 9, color: 'rgba(211,227,240,0.5)' }}>Events</span>
-                </div>
-                <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#3AAFA9', display: 'flex', alignItems: 'center', justifyContent: 'center', transform: 'translateY(-6px)' }}>
-                  <QrCode size={18} color="#090D16" />
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                  <Award size={14} color="rgba(211,227,240,0.5)" />
-                  <span style={{ fontSize: 9, color: 'rgba(211,227,240,0.5)' }}>Certs</span>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                  <User size={14} color="rgba(211,227,240,0.5)" />
-                  <span style={{ fontSize: 9, color: 'rgba(211,227,240,0.5)' }}>Profile</span>
-                </div>
-              </div>
+                  gap: 8,
+                  padding: '13px 28px',
+                  background: 'linear-gradient(135deg, #3AAFA9 0%, #2B7A78 100%)',
+                  color: '#fff',
+                  borderRadius: 30,
+                  textDecoration: 'none',
+                  fontWeight: 700,
+                  fontSize: 15,
+                  boxShadow: '0 8px 24px rgba(58,175,169,0.35)',
+                  transition: 'transform 0.15s ease'
+                }}
+              >
+                <span>{isAuthenticated ? 'Open My Dashboard' : 'Get Started Now'}</span>
+                <ArrowRight size={18} />
+              </Link>
+              <a
+                href="#features"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '13px 24px',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  color: '#D3E3F0',
+                  border: '1px solid rgba(211, 227, 240, 0.18)',
+                  borderRadius: 30,
+                  textDecoration: 'none',
+                  fontWeight: 600,
+                  fontSize: 15
+                }}
+              >
+                <span>Learn More</span>
+              </a>
             </div>
-          ) : (
-            /* 🖥️ PC DASHBOARD MOCKUP */
-            <div style={{
-              width: '100%',
-              maxWidth: 780,
-              background: '#0F1524',
-              borderRadius: 20,
-              border: '1.5px solid rgba(255, 255, 255, 0.12)',
-              boxShadow: '0 25px 60px rgba(0,0,0,0.6)',
-              overflow: 'hidden',
-              display: 'flex',
-              flexDirection: 'column'
-            }}>
-              {/* Window Header */}
-              <div style={{
-                height: 38,
-                background: '#090D16',
-                borderBottom: '1px solid rgba(255,255,255,0.08)',
-                display: 'flex',
-                alignItems: 'center',
-                padding: '0 16px',
-                gap: 8
-              }}>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#EF4444' }} />
-                  <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#F59E0B' }} />
-                  <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#10B981' }} />
-                </div>
-                <div style={{
-                  flex: 1,
-                  textAlign: 'center',
-                  fontSize: 11,
-                  color: 'rgba(211,227,240,0.5)',
-                  fontFamily: "'Inter', sans-serif"
-                }}>
-                  mlynq.iste.org/home — SCTCE Student Chapter
-                </div>
-              </div>
+          </div>
 
-              {/* PC Split Body (Sidebar + Content) */}
-              <div style={{ display: 'flex', minHeight: 300 }}>
-                {/* Desktop Sidebar */}
-                <div style={{
-                  width: 170,
-                  background: 'rgba(255,255,255,0.02)',
-                  borderRight: '1px solid rgba(255,255,255,0.06)',
-                  padding: '16px 12px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 8
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                    <GraduationCap size={18} color="#3AAFA9" />
-                    <span style={{ fontSize: 13, fontWeight: 700 }}>M-Lynq</span>
-                  </div>
-                  {[
-                    { label: 'Dashboard', icon: <Calendar size={13} />, active: true },
-                    { label: 'Events', icon: <BookOpen size={13} /> },
-                    { label: 'Certificates', icon: <Award size={13} /> },
-                    { label: 'Attendance', icon: <CheckCircle size={13} /> },
-                    { label: 'My Profile', icon: <User size={13} /> }
-                  ].map(item => (
-                    <div
-                      key={item.label}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 8,
-                        padding: '7px 10px', borderRadius: 8,
-                        background: item.active ? 'rgba(58,175,169,0.18)' : 'transparent',
-                        color: item.active ? '#3AAFA9' : 'rgba(211,227,240,0.6)',
-                        fontSize: 12, fontWeight: item.active ? 700 : 500
-                      }}
-                    >
-                      {item.icon} {item.label}
-                    </div>
-                  ))}
-                </div>
-
-                {/* Desktop Main Content */}
-                <div style={{ flex: 1, padding: '20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  {/* Top Bar inside Content */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <div style={{ fontSize: 16, fontWeight: 700 }}>Member Dashboard</div>
-                      <div style={{ fontSize: 11, color: 'rgba(211,227,240,0.5)', fontFamily: "'Inter', sans-serif" }}>
-                        Verified SCTCE Member • Ready for events
-                      </div>
-                    </div>
-                    <span style={{ fontSize: 11, padding: '4px 10px', borderRadius: 14, background: 'rgba(16,185,129,0.15)', color: '#10B981', fontWeight: 600 }}>
-                      Active Member
-                    </span>
-                  </div>
-
-                  {/* Desktop Grid (QR + Events + Certs) */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 14 }}>
-                    {/* Left Card: Attendance Pass */}
-                    <div style={{ background: 'linear-gradient(135deg, #182032 0%, #101522 100%)', borderRadius: 14, padding: '16px', border: '1px solid rgba(58,175,169,0.25)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                        <QrCode size={20} color="#3AAFA9" />
-                        <span style={{ fontSize: 13, fontWeight: 700 }}>Live Attendance QR</span>
-                      </div>
-                      <p style={{ fontSize: 11, color: 'rgba(211,227,240,0.6)', fontFamily: "'Inter', sans-serif", margin: 0 }}>
-                        AES-256 encrypted dynamic token generated on demand for event scanners.
-                      </p>
-                    </div>
-
-                    {/* Right Card: Digital Certificates */}
-                    <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 14, padding: '16px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                        <Award size={20} color="#F5C842" />
-                        <span style={{ fontSize: 13, fontWeight: 700 }}>Direct PDF Download</span>
-                      </div>
-                      <p style={{ fontSize: 11, color: 'rgba(211,227,240,0.6)', fontFamily: "'Inter', sans-serif", margin: 0 }}>
-                        Custom certificate names set by exec committee ready to view or download.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Desktop Banner */}
-                  <div style={{ padding: '12px 16px', borderRadius: 12, background: 'rgba(58,175,169,0.08)', border: '1px solid rgba(58,175,169,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ fontSize: 12, fontWeight: 600 }}>Upcoming: Offenso 2026 Campus Hackathon & Tech Summit</div>
-                    <span style={{ fontSize: 11, color: '#3AAFA9', fontWeight: 700 }}>Registered</span>
-                  </div>
-                </div>
-              </div>
+          {/* ── RIGHT COLUMN — animated login mockup ────────────────── */}
+          <div className="hero-right" style={{ flex: '0 0 360px' }}>
+            <div className="hero-mockup-wrap">
+              <LoginMockup />
             </div>
-          )}
+          </div>
         </div>
       </section>
 
