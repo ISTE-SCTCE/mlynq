@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import DashboardLayout from '../components/DashboardLayout';
-import { Calendar, Award, Bell, ChevronRight, User, Clock, MapPin, Tag } from 'lucide-react';
+import { Calendar, Award, Bell, ChevronRight, User, Clock, MapPin, Tag, QrCode } from 'lucide-react';
 
 const CATEGORY_PILLS = ['All', 'Announcements', 'Workshops', 'Tech Talks', 'Hackathons', 'Meetups', 'Seminars'];
 
@@ -81,6 +81,54 @@ export default function HomePage() {
                 <User size={22} color="#5F85A2" />
               </div>
             )}
+          </Link>
+        </div>
+
+        {/* Attendance QR Quick Card */}
+        <div style={{
+          background: 'linear-gradient(135deg, #181824 0%, #121218 100%)',
+          borderRadius: 24,
+          padding: '20px 24px',
+          marginBottom: 24,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 16,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+          border: '1px solid rgba(255,255,255,0.1)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div style={{ width: 48, height: 48, borderRadius: 16, background: 'rgba(58, 175, 169, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <QrCode size={24} color="#3AAFA9" />
+            </div>
+            <div>
+              <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 17, fontWeight: 700, color: '#fff' }}>
+                Event Attendance QR
+              </div>
+              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: 'rgba(211,227,240,0.6)', marginTop: 2 }}>
+                Dynamic AES-256-GCM token • Present to coordinator
+              </div>
+            </div>
+          </div>
+          <Link
+            to="/qr"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '10px 20px',
+              borderRadius: 20,
+              background: '#fff',
+              color: '#111',
+              textDecoration: 'none',
+              fontFamily: "'Space Grotesk', sans-serif",
+              fontSize: 13,
+              fontWeight: 700,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            }}
+          >
+            Show My QR <ChevronRight size={16} />
           </Link>
         </div>
 

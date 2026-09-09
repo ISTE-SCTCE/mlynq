@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import DashboardLayout from '../components/DashboardLayout';
-import { CalendarDays, List } from 'lucide-react';
+import StudentQrModal from '../components/StudentQrModal';
+import { CalendarDays, List, QrCode } from 'lucide-react';
 
 const WEEKDAYS_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -20,6 +21,7 @@ export default function AttendancePage() {
   const [records, setRecords] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [view, setView] = useState('heatmap'); // 'heatmap' | 'list'
+  const [qrModalOpen, setQrModalOpen] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -90,12 +92,36 @@ export default function AttendancePage() {
             <h1 style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: 26, fontWeight: 700, color: '#111', marginBottom: 4 }}>Attendance</h1>
             <p style={{ fontFamily: "'Inter',sans-serif", fontSize: 14, color: '#5F85A2' }}>Your event attendance history</p>
           </div>
-          <div style={{ display: 'flex', background: '#fff', borderRadius: 14, border: '1.5px solid #D3E3F0', overflow: 'hidden' }}>
-            {[{ key: 'heatmap', icon: <CalendarDays size={16} />, label: 'Heatmap' }, { key: 'list', icon: <List size={16} />, label: 'List' }].map(v => (
-              <button key={v.key} onClick={() => setView(v.key)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', background: view === v.key ? '#111' : 'transparent', color: view === v.key ? '#fff' : '#5F85A2', border: 'none', cursor: 'pointer', fontFamily: "'Inter',sans-serif", fontSize: 13, fontWeight: 600, transition: 'all 0.15s' }}>
-                {v.icon} {v.label}
-              </button>
-            ))}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <button
+              onClick={() => setQrModalOpen(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '9px 18px',
+                background: 'linear-gradient(135deg, #181824 0%, #121218 100%)',
+                color: '#fff',
+                border: '1px solid rgba(255,255,255,0.15)',
+                borderRadius: 14,
+                cursor: 'pointer',
+                fontFamily: "'Space Grotesk', sans-serif",
+                fontSize: 13,
+                fontWeight: 600,
+                boxShadow: '0 4px 14px rgba(0,0,0,0.1)',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <QrCode size={16} color="#3AAFA9" />
+              <span>Show My QR</span>
+            </button>
+            <div style={{ display: 'flex', background: '#fff', borderRadius: 14, border: '1.5px solid #D3E3F0', overflow: 'hidden' }}>
+              {[{ key: 'heatmap', icon: <CalendarDays size={16} />, label: 'Heatmap' }, { key: 'list', icon: <List size={16} />, label: 'List' }].map(v => (
+                <button key={v.key} onClick={() => setView(v.key)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', background: view === v.key ? '#111' : 'transparent', color: view === v.key ? '#fff' : '#5F85A2', border: 'none', cursor: 'pointer', fontFamily: "'Inter',sans-serif", fontSize: 13, fontWeight: 600, transition: 'all 0.15s' }}>
+                  {v.icon} {v.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -226,6 +252,8 @@ export default function AttendancePage() {
           </div>
         )}
       </div>
+
+      <StudentQrModal isOpen={qrModalOpen} onClose={() => setQrModalOpen(false)} />
     </DashboardLayout>
   );
 }

@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import DashboardLayout from '../components/DashboardLayout';
-import { User, Mail, Phone, Hash, Book, GraduationCap, Calendar, Shield, Award, Edit2, CheckCircle, AlertCircle } from 'lucide-react';
+import StudentQrModal from '../components/StudentQrModal';
+import { User, Mail, Phone, Hash, Book, GraduationCap, Calendar, Shield, Award, Edit2, CheckCircle, AlertCircle, QrCode } from 'lucide-react';
 
 const inputStyle = {
   width: '100%', padding: '12px 14px 12px 42px', background: '#fff', border: '1.5px solid #D3E3F0',
@@ -20,6 +21,7 @@ export default function ProfilePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
   const [saveError, setSaveError] = useState('');
+  const [qrModalOpen, setQrModalOpen] = useState(false);
 
   const avatarUrl = name ? `https://api.dicebear.com/7.x/notionists/png?seed=${encodeURIComponent(name)}` : null;
 
@@ -37,7 +39,7 @@ export default function ProfilePage() {
     setSaveMsg(''); setSaveError('');
     setIsSaving(true);
     try {
-      await supabase.from('profiles').update({ name: formName, phone: formPhone, roll_number: formRoll, branch: formBranch, year: formYear ? parseInt(formYear) : null }).eq('id', user.id);
+      await supabase.from('users').update({ name: formName, phone: formPhone, roll_number: formRoll, branch: formBranch, year: formYear || null }).eq('id', user.id);
       setSaveMsg('Profile updated successfully!');
       setEditing(false);
       refresh();
@@ -102,6 +104,33 @@ export default function ProfilePage() {
                 <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: 14, fontWeight: 600, color: daysUntilExpiry !== null && daysUntilExpiry <= 30 ? '#E53E3E' : 'rgba(255,255,255,0.8)', marginTop: 2 }}>{validityStr}</div>
               </div>
             )}
+          </div>
+
+          {/* View Attendance QR button */}
+          <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'flex-end' }}>
+            <button
+              onClick={() => setQrModalOpen(true)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '9px 18px',
+                background: 'rgba(255,255,255,0.12)',
+                border: '1px solid rgba(255,255,255,0.22)',
+                borderRadius: 14,
+                color: '#fff',
+                cursor: 'pointer',
+                fontFamily: "'Space Grotesk', sans-serif",
+                fontSize: 13,
+                fontWeight: 600,
+                transition: 'all 0.15s',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.22)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.12)'}
+            >
+              <QrCode size={16} color="#3AAFA9" />
+              <span>View Attendance QR</span>
+            </button>
           </div>
         </div>
 
@@ -171,6 +200,8 @@ export default function ProfilePage() {
           )}
         </div>
       </div>
+
+      <StudentQrModal isOpen={qrModalOpen} onClose={() => setQrModalOpen(false)} />
     </DashboardLayout>
   );
 }

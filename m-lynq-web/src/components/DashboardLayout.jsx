@@ -1,10 +1,12 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { GraduationCap, Home, Calendar, Award, Bell, User, LogOut, Menu, X, History } from 'lucide-react';
+import { GraduationCap, Home, Calendar, Award, Bell, User, LogOut, Menu, X, History, QrCode } from 'lucide-react';
 import { useState } from 'react';
+import StudentQrModal from './StudentQrModal';
 
 const navItems = [
   { path: '/home', icon: <Home size={18} />, label: 'Home' },
+  { path: '/qr', icon: <QrCode size={18} />, label: 'My QR' },
   { path: '/events', icon: <Calendar size={18} />, label: 'Events' },
   { path: '/attendance', icon: <GraduationCap size={18} />, label: 'Attendance' },
   { path: '/certificates', icon: <Award size={18} />, label: 'Certificates' },
@@ -18,6 +20,7 @@ export default function DashboardLayout({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [qrModalOpen, setQrModalOpen] = useState(false);
 
   const avatarUrl = name ? `https://api.dicebear.com/7.x/notionists/png?seed=${encodeURIComponent(name)}` : null;
 
@@ -26,7 +29,7 @@ export default function DashboardLayout({ children }) {
   const SidebarContent = () => (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '24px 16px' }}>
       {/* Logo */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 36, paddingLeft: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 28, paddingLeft: 8 }}>
         <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg,#5F85A2,#3a5c7a)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <GraduationCap size={20} color="#fff" />
         </div>
@@ -35,6 +38,44 @@ export default function DashboardLayout({ children }) {
           <div style={{ fontSize: 11, color: '#5F85A2', fontWeight: 500 }}>ISTE Portal</div>
         </div>
       </div>
+
+      {/* Quick QR Button */}
+      <button
+        onClick={() => {
+          setMobileOpen(false);
+          setQrModalOpen(true);
+        }}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 8,
+          width: '100%',
+          padding: '11px 14px',
+          background: 'linear-gradient(135deg, #1a1a24 0%, #121218 100%)',
+          border: '1px solid rgba(255, 255, 255, 0.12)',
+          borderRadius: 14,
+          color: '#fff',
+          cursor: 'pointer',
+          fontFamily: "'Space Grotesk', sans-serif",
+          fontSize: 13,
+          fontWeight: 700,
+          marginBottom: 16,
+          boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+          transition: 'all 0.15s ease',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-1px)';
+          e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.2)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.12)';
+        }}
+      >
+        <QrCode size={17} color="#3AAFA9" />
+        <span>Show Attendance QR</span>
+      </button>
 
       {/* Nav */}
       <nav style={{ flex: 1 }}>
@@ -90,22 +131,47 @@ export default function DashboardLayout({ children }) {
       )}
 
       {/* Mobile header */}
-      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: 60, background: '#fff', borderBottom: '1.5px solid #D3E3F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', zIndex: 30 }} className="mobile-header">
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: 60, background: '#fff', borderBottom: '1.5px solid #D3E3F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', zIndex: 30 }} className="mobile-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ width: 32, height: 32, borderRadius: 8, background: 'linear-gradient(135deg,#5F85A2,#3a5c7a)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <GraduationCap size={18} color="#fff" />
           </div>
           <span style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 16, color: '#111' }}>M-Lynq</span>
         </div>
-        <button onClick={() => setMobileOpen(!mobileOpen)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#5F85A2', padding: 6 }}>
-          {mobileOpen ? <X size={22} /> : <Menu size={22} />}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button
+            onClick={() => setQrModalOpen(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '6px 12px',
+              borderRadius: 20,
+              background: '#111',
+              color: '#fff',
+              border: 'none',
+              fontSize: 12,
+              fontWeight: 600,
+              fontFamily: "'Space Grotesk',sans-serif",
+              cursor: 'pointer',
+            }}
+          >
+            <QrCode size={14} color="#3AAFA9" />
+            <span>QR</span>
+          </button>
+          <button onClick={() => setMobileOpen(!mobileOpen)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#5F85A2', padding: 6 }}>
+            {mobileOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
+        </div>
       </div>
 
       {/* Main content */}
       <main className="dashboard-main" style={{ flex: 1, paddingTop: 0 }}>
         {children}
       </main>
+
+      {/* Dynamic Student QR Modal Accessible Everywhere */}
+      <StudentQrModal isOpen={qrModalOpen} onClose={() => setQrModalOpen(false)} />
 
       <style>{`
         @media (min-width: 768px) {

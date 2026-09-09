@@ -1,4 +1,4 @@
-﻿// Complete list of registered ISTE Member emails from official registration list
+// Complete list of registered ISTE Member emails from official registration list
 export const kIsteMemberEmails = new Set([
   'aadithyanrs9e@gmail.com', 'aardhraramesh@gmail.com', 'aasiyas252006@gmail.com', 
   'abinanth@gmail.com', 'aabhinavbr@gmail.com', 'abhiramnair6772@gmail.com', 
@@ -17,8 +17,8 @@ export const kIsteMemberEmails = new Set([
   'bazithms2006.dsc@gmail.com', 'nichuneelu1022@gmail.com', 'chinmayi@gmail.com', 
   'dev.nanda018@gmail.com', 'devikhavr@gmail.com', 'diyaramesh112@gmail.com', 
   'farhanafirosh07@gmail.com', 'fidhafathima494@gmail.com', 'ars.suru786@gmail.com', 
-  'ganeshgopal3106@gmail.com', 'gsnmega6@gmail.com', 'asgayathri48@gmail.com', 
-  'tgoutham96@gmail.com', 'gowri.l.nair06@gmail.com', 'hkalladi45@gmail.com', 
+  'ganeshgopal3106@gmail.com', 'gsnmega6@gmail.com', 'gauthamsnair06@gmail.com', 'asgayathri48@gmail.com', 
+  'tgoutham96@gmail.com', 'gowri.l.nair06@gmail.com', 'hkalladi45@gmail.com', 'chandanasuresh1006@gmail.com', 
   'hareeshms6665@gmail.com', 'jeslynbabu@gmail.com', 'jonethjillsff@gmail.com', 
   'krish2krishnaveni@gmail.com', 'lamiyashifa45@gmail.com', 'libishma2007@gmail.com', 
   'unnikrishnan44013au@gmail.com', 'mahadevanalsctcollege@gmail.com', 'malavikathampy572@gmail.com', 

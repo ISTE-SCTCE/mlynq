@@ -12,11 +12,25 @@ export function AuthProvider({ children }) {
   const loadProfile = async (authUser) => {
     if (!authUser) { setProfile(null); setIsLoading(false); return; }
     try {
-      const { data: profileData, error: profileErr } = await supabase
-        .from('profiles')
+      let { data: profileData, error: profileErr } = await supabase
+        .from('users')
         .select('*')
         .eq('id', authUser.id)
         .maybeSingle();
+
+      if (!profileData && authUser.email) {
+        const { data: byEmail } = await supabase
+          .from('users')
+          .select('*')
+          .ilike('email', authUser.email.trim())
+          .maybeSingle();
+        if (byEmail) {
+          profileData = byEmail;
+          if (byEmail.id !== authUser.id) {
+            await supabase.from('users').update({ id: authUser.id }).eq('id', byEmail.id);
+          }
+        }
+      }
 
       if (profileErr) {
         console.error('Error fetching profile from DB:', profileErr);

@@ -64,7 +64,7 @@ export default function LoginPage() {
       // 1. Check official registered ISTE member list
       const isMember = isIsteMemberEmail(trimmedEmail);
 
-      // 2. Also check profiles table in Supabase (via RPC or direct select)
+      // 2. Also check users table in Supabase (via RPC or direct select)
       let profileRow = null;
       try {
         const { data: rpcData } = await supabase.rpc('check_member_email', { p_email: trimmedEmail });
@@ -76,7 +76,7 @@ export default function LoginPage() {
       if (!profileRow) {
         try {
           const { data } = await supabase
-            .from('profiles')
+            .from('users')
             .select('id, is_iste_member, is_registered, name, phone')
             .ilike('email', trimmedEmail)
             .maybeSingle();
@@ -104,7 +104,7 @@ export default function LoginPage() {
         setMembershipTag('guest');
         const { error: otpErr } = await supabase.auth.signInWithOtp({
           email: trimmedEmail,
-          options: { shouldCreateUser: false },
+          options: { shouldCreateUser: true },
         });
         if (otpErr) throw otpErr;
         setSuccess('OTP sent to your email!');
@@ -140,7 +140,7 @@ export default function LoginPage() {
       const uid = data.user?.id;
       if (uid) {
         // Upsert default profile for the ISTE member
-        await supabase.from('profiles').upsert({
+        await supabase.from('users').upsert({
           id: uid,
           email: trimmedEmail,
           role: 'member',
@@ -208,20 +208,25 @@ export default function LoginPage() {
 
       const uid = data.user?.id;
       const pending = JSON.parse(sessionStorage.getItem('pending_signup') || '{}');
-      if (uid && pending.name) {
-        await supabase.from('profiles').upsert({
-          id: uid,
-          email: trimmedEmail,
-          name: pending.name,
-          phone: pending.phone,
-          roll_number: pending.roll_number,
-          college: pending.college,
-          role: 'member',
-          is_registered: true,
-          is_iste_member: false,
-          status: 'active',
-        }, { onConflict: 'id' });
-        sessionStorage.removeItem('pending_signup');
+      if (uid) {
+        if (pending.name) {
+          await supabase.from('users').upsert({
+            id: uid,
+            email: trimmedEmail,
+            name: pending.name,
+            phone: pending.phone,
+            roll_number: pending.roll_number,
+            college: pending.college,
+            role: 'member',
+            is_registered: true,
+            is_iste_member: false,
+            status: 'active',
+          }, { onConflict: 'id' });
+          sessionStorage.removeItem('pending_signup');
+        } else {
+          // Pre-registered user logging in: link auth uid to users record
+          await supabase.from('users').update({ id: uid }).ilike('email', trimmedEmail);
+        }
       }
 
       setSuccess('Logged in successfully!');

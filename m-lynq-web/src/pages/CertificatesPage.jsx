@@ -37,6 +37,21 @@ function formatDate(dateStr) {
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+function getCertificateCustomName(cert) {
+  if (!cert) return 'Certificate of Participation';
+  const raw = cert.title || cert._title;
+  if (raw && typeof raw === 'string' && raw.trim()) {
+    if (raw.includes(' — ')) {
+      return raw.split(' — ')[0].trim();
+    }
+    if (raw.includes(' - ')) {
+      return raw.split(' - ')[0].trim();
+    }
+    return raw.trim();
+  }
+  return 'Certificate of Participation';
+}
+
 // ── Circuit-trace SVG ornament (top-right corner) ─────────────────────────────
 function CircuitOrnament() {
   return (
@@ -108,11 +123,12 @@ function CertCard({ cert, navigate }) {
 
   const [shareMsg, setShareMsg] = useState('');
   const [isDownloading, setIsDownloading] = useState(false);
+  const certCustomName = getCertificateCustomName(cert);
 
   const handleShare = () => {
     if (!url) return;
     if (navigator.share) {
-      navigator.share({ title: `My ISTE Certificate — ${eventTitle}`, url }).catch(() => {});
+      navigator.share({ title: `My ISTE ${certCustomName} — ${eventTitle}`, url }).catch(() => {});
     } else {
       navigator.clipboard.writeText(url).then(() => {
         setShareMsg('Link copied!');
@@ -150,7 +166,7 @@ function CertCard({ cert, navigate }) {
         if (userId) {
           try {
             const { data: userRow } = await supabase
-              .from('profiles')
+              .from('users')
               .select('name')
               .eq('id', userId)
               .maybeSingle();
@@ -193,6 +209,10 @@ function CertCard({ cert, navigate }) {
         html = html.replaceAll('{{COORDINATOR_NAME}}', coordinatorName);
         html = html.replaceAll('{{chair_name}}', chairName);
         html = html.replaceAll('{{CHAIR_NAME}}', chairName);
+        html = html.replaceAll('{{certificate_name}}', certCustomName);
+        html = html.replaceAll('{{CERTIFICATE_NAME}}', certCustomName);
+        html = html.replaceAll('{{certificate_title}}', certCustomName);
+        html = html.replaceAll('{{CERTIFICATE_TITLE}}', certCustomName);
 
         const container = document.createElement('div');
         container.innerHTML = html;
@@ -215,7 +235,7 @@ function CertCard({ cert, navigate }) {
           format: [1122, 793]
         });
         pdf.addImage(imgData, 'PNG', 0, 0, 1122, 793);
-        pdf.save(`Certificate_${eventTitle.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
+        pdf.save(`${certCustomName.replace(/[^a-zA-Z0-9]/g, '_')}_${(eventTitle || 'Event').replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
         
         document.body.removeChild(container);
       } catch (err) {
@@ -232,7 +252,7 @@ function CertCard({ cert, navigate }) {
         const blobUrl = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = blobUrl;
-        a.download = `Certificate_${(eventTitle || 'Event').replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+        a.download = `${certCustomName.replace(/[^a-zA-Z0-9]/g, '_')}_${(eventTitle || 'Event').replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -278,7 +298,7 @@ function CertCard({ cert, navigate }) {
             {eventTitle}
           </div>
           <div style={{ fontSize: 12, color: T.muted, fontFamily: "'Inter',sans-serif", marginTop: 2 }}>
-            Certificate of Participation
+            {certCustomName}
           </div>
           {dateLabel && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 6 }}>
@@ -393,7 +413,7 @@ export default function CertificatesPage() {
         // 1. Fetch certificates for current user
         const { data: certData, error: certErr } = await supabase
           .from('certificates')
-          .select('id, event_id, student_name, user_id, certificate_url, file_url, issued_at')
+          .select('id, event_id, student_name, user_id, certificate_url, file_url, title, description, issued_at')
           .eq('user_id', user.id)
           .order('issued_at', { ascending: false });
 
@@ -429,6 +449,8 @@ export default function CertificatesPage() {
             _eventTitle: ev?.title || 'Event',
             _eventDate: ev?.date || '',
             _eventId: ev?.id || item.event_id,
+            _title: item.title || '',
+            _description: item.description || '',
           };
         });
 
